@@ -1,0 +1,19 @@
+{
+  "name": "gramsathi-ai",
+  "version": "1.0.0",
+  "description": "GramSathi AI — Public Civic Service Platform",
+  "scripts": {
+    "dev": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "preview": "npm --prefix client run preview"
+  },
+  "keywords": [
+    "civic-tech",
+    "maharashtra",
+    "dbt",
+    "schemes",
+    "rural-development"
+  ],
+  "author": "GramSathi AI Team",
+  "license": "ISC"
+}
