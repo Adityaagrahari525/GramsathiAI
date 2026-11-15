@@ -68,6 +68,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               {currentLang === 'mr' ? 'मागोवा' : 'Tracker'}
             </Link>
             <Link
+              to="/synergy"
+              className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              {currentLang === 'mr' ? 'संयोग' : 'Synergy'}
+            </Link>
+            <Link
+              to="/fraud-check"
+              className="px-3.5 py-2 hover:text-red-700 hover:bg-red-50 text-red-600 font-semibold rounded-lg transition-colors"
+            >
+              {currentLang === 'mr' ? 'फसवणूक तपासणी' : 'Fraud Check'}
+            </Link>
+            <Link
               to="/eligibility"
               className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
             >

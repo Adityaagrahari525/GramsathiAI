@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { TopBar } from './components/TopBar';
-import { Navbar } from './components/Navbar';
+import { HomeNavbar } from './components/HomeNavbar';
 import { LiveBanner } from './components/LiveBanner';
 import { HeroSection } from './components/HeroSection';
 import { ActionCards } from './components/ActionCards';
@@ -21,6 +21,8 @@ import { EligibilityCheckerPage } from './pages/EligibilityCheckerPage';
 import { EligibilityResultsPage } from './pages/EligibilityResultsPage';
 import { CitizenProfilePage } from './pages/CitizenProfilePage';
 import { NeedDiscoveryPage } from './pages/NeedDiscoveryPage';
+import { BenefitSynergyPage } from './pages/BenefitSynergyPage';
+import { FraudCheckerPage } from './pages/FraudCheckerPage';
 
 // ─── Landing Page (Home) ───────────────────────────────────────────────────────
 function HomePage() {
@@ -76,13 +78,8 @@ function HomePage() {
         onFontSizeChange={handleFontSizeChange}
       />
 
-      {/* 2. Main Civic Navigation Header */}
-      <Navbar
-        currentLang={currentLang}
-        onOpenDirectory={() => navigate('/schemes')}
-        onOpenEligibility={() => setIsEligibilityOpen(true)}
-        onOpenAssistant={() => setIsAssistantOpen(true)}
-      />
+      {/* 2. Main Civic Navigation Header with Horizontal Sliding Bar & Sidebar */}
+      <HomeNavbar currentLang={currentLang} />
 
       {/* 3. Official Status & Gazette Sync Bar */}
       <LiveBanner currentLang={currentLang} />
@@ -158,6 +155,10 @@ export function App() {
       <Route path="/citizen/profile" element={<CitizenProfilePage />} />
       <Route path="/needs" element={<NeedDiscoveryPage />} />
       <Route path="/find-by-need" element={<NeedDiscoveryPage />} />
+      <Route path="/synergy" element={<BenefitSynergyPage />} />
+      <Route path="/combinations" element={<BenefitSynergyPage />} />
+      <Route path="/fraud-check" element={<FraudCheckerPage />} />
+      <Route path="/verify-message" element={<FraudCheckerPage />} />
     </Routes>
   );
 }
