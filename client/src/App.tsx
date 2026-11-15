@@ -14,6 +14,13 @@ import { SchemesPage } from './pages/SchemesPage';
 import { SchemeDetailPage } from './pages/SchemeDetailPage';
 import { SignInPage } from './pages/SignInPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { AssistantPage } from './pages/AssistantPage';
+import { TrackerPage } from './pages/TrackerPage';
+import { SavedSchemesPage } from './pages/SavedSchemesPage';
+import { EligibilityCheckerPage } from './pages/EligibilityCheckerPage';
+import { EligibilityResultsPage } from './pages/EligibilityResultsPage';
+import { CitizenProfilePage } from './pages/CitizenProfilePage';
+import { NeedDiscoveryPage } from './pages/NeedDiscoveryPage';
 
 // ─── Landing Page (Home) ───────────────────────────────────────────────────────
 function HomePage() {
@@ -50,7 +57,7 @@ function HomePage() {
     if (stepNumber === 1) {
       setIsAssistantOpen(true);
     } else if (stepNumber === 2) {
-      setIsEligibilityOpen(true);
+      navigate('/eligibility');
     } else if (stepNumber === 3) {
       navigate('/schemes');
     }
@@ -93,7 +100,7 @@ function HomePage() {
         {/* 5. 3 Action Cards (Find Schemes, Check Eligibility, Ask AI) */}
         <ActionCards
           onBrowseDirectory={() => navigate('/schemes')}
-          onCheckEligibility={() => setIsEligibilityOpen(true)}
+          onCheckEligibility={() => navigate('/eligibility')}
           onAskAI={() => setIsAssistantOpen(true)}
         />
 
@@ -136,9 +143,21 @@ export function App() {
       <Route path="/schemes" element={<SchemesPage />} />
       <Route path="/scheme/:id" element={<SchemeDetailPage />} />
       <Route path="/schemes/:id" element={<SchemeDetailPage />} />
+      <Route path="/eligibility" element={<EligibilityCheckerPage />} />
+      <Route path="/eligibility/checker" element={<EligibilityCheckerPage />} />
+      <Route path="/eligibility/results" element={<EligibilityResultsPage />} />
       <Route path="/signin" element={<SignInPage />} />
       <Route path="/login" element={<SignInPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/assistant" element={<AssistantPage />} />
+      <Route path="/tracker" element={<TrackerPage />} />
+      <Route path="/journey" element={<TrackerPage />} />
+      <Route path="/saved" element={<SavedSchemesPage />} />
+      <Route path="/saved-schemes" element={<SavedSchemesPage />} />
+      <Route path="/profile" element={<CitizenProfilePage />} />
+      <Route path="/citizen/profile" element={<CitizenProfilePage />} />
+      <Route path="/needs" element={<NeedDiscoveryPage />} />
+      <Route path="/find-by-need" element={<NeedDiscoveryPage />} />
     </Routes>
   );
 }

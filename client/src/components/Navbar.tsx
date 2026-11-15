@@ -12,8 +12,8 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentLang,
   onOpenDirectory: _onOpenDirectory,
-  onOpenEligibility,
-  onOpenAssistant,
+  onOpenEligibility: _onOpenEligibility,
+  onOpenAssistant: _onOpenAssistant,
 }) => {
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
@@ -49,19 +49,37 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               {currentLang === 'mr' ? 'योजना शोधा' : 'Explore Schemes'}
             </Link>
-            <button
-              onClick={onOpenEligibility}
+            <Link
+              to="/needs"
               className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
             >
-              {currentLang === 'mr' ? 'पात्रता तपासा' : 'Check Eligibility'}
-            </button>
-            <button
-              onClick={onOpenAssistant}
+              {currentLang === 'mr' ? 'गरजेनुसार' : 'Find by Need'}
+            </Link>
+            <Link
+              to="/saved"
+              className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              {currentLang === 'mr' ? 'जतन केलेल्या' : 'Saved Schemes'}
+            </Link>
+            <Link
+              to="/tracker"
+              className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              {currentLang === 'mr' ? 'मागोवा' : 'Tracker'}
+            </Link>
+            <Link
+              to="/eligibility"
+              className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              {currentLang === 'mr' ? 'पात्रता तपासा' : 'Eligibility Tool'}
+            </Link>
+            <Link
+              to="/assistant"
               className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors flex items-center space-x-1.5"
             >
-              <span>{currentLang === 'mr' ? 'ग्रामसाथी विचार' : 'Ask AI'}</span>
+              <span>{currentLang === 'mr' ? 'AI सहाय्यक' : 'AI Assistant'}</span>
               <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">New</span>
-            </button>
+            </Link>
             <a
               href="#about"
               className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
