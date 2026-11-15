@@ -1,14 +1,15 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Search, CheckSquare, MessageSquareText, ArrowRight } from 'lucide-react';
 
 interface ActionCardsProps {
-  onBrowseDirectory: () => void;
+  onBrowseDirectory?: () => void;
   onCheckEligibility: () => void;
   onAskAI: () => void;
 }
 
 export const ActionCards: React.FC<ActionCardsProps> = ({
-  onBrowseDirectory,
+  onBrowseDirectory: _onBrowseDirectory,
   onCheckEligibility,
   onAskAI,
 }) => {
@@ -16,8 +17,8 @@ export const ActionCards: React.FC<ActionCardsProps> = ({
     <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card 1: Find Schemes */}
-        <div
-          onClick={onBrowseDirectory}
+        <Link
+          to="/schemes"
           className="group relative bg-white rounded-2xl p-6 border border-slate-200 hover:border-blue-400 hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col justify-between"
         >
           <div>
@@ -46,7 +47,7 @@ export const ActionCards: React.FC<ActionCardsProps> = ({
             <span>Browse Scheme Directory</span>
             <ArrowRight className="w-4 h-4 ml-1.5" />
           </div>
-        </div>
+        </Link>
 
         {/* Card 2: Check Eligibility */}
         <div

@@ -1,16 +1,17 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { PhoneCall, User, ShieldCheck } from 'lucide-react';
 
 interface NavbarProps {
   currentLang: 'en' | 'mr' | 'hi';
-  onOpenDirectory: () => void;
+  onOpenDirectory?: () => void;
   onOpenEligibility: () => void;
   onOpenAssistant: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentLang,
-  onOpenDirectory,
+  onOpenDirectory: _onOpenDirectory,
   onOpenEligibility,
   onOpenAssistant,
 }) => {
@@ -42,12 +43,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               {currentLang === 'mr' ? 'मुख्यपृष्ठ' : 'Home'}
             </button>
-            <button
-              onClick={onOpenDirectory}
+            <Link
+              to="/schemes"
               className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
             >
               {currentLang === 'mr' ? 'योजना शोधा' : 'Explore Schemes'}
-            </button>
+            </Link>
             <button
               onClick={onOpenEligibility}
               className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
@@ -91,13 +92,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Sign in Button */}
-            <button
-              onClick={() => alert(currentLang === 'mr' ? 'नागरिक / सीएससी केंद्र लॉगिन लवकरच उपलब्ध होत आहे.' : 'Citizen / CSC Login portal opening shortly.')}
+            <Link
+              to="/signin"
               className="flex items-center space-x-2 bg-[#1850b5] hover:bg-[#0f3675] text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-xs hover:shadow-md transition-all active:scale-[0.98]"
             >
               <User className="w-4 h-4" />
               <span>{currentLang === 'mr' ? 'नागरिक लॉगिन' : 'Sign In / नागरिक लॉगिन'}</span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

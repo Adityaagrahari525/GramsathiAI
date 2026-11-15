@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { TopBar } from './components/TopBar';
 import { Navbar } from './components/Navbar';
 import { LiveBanner } from './components/LiveBanner';
@@ -9,18 +10,20 @@ import { StepsSection } from './components/StepsSection';
 import { Footer } from './components/Footer';
 import { AskAssistantModal } from './components/AskAssistantModal';
 import { EligibilityModal } from './components/EligibilityModal';
-import { SchemeDirectoryModal } from './components/SchemeDirectoryModal';
+import { SchemesPage } from './pages/SchemesPage';
+import { SchemeDetailPage } from './pages/SchemeDetailPage';
+import { SignInPage } from './pages/SignInPage';
+import { RegisterPage } from './pages/RegisterPage';
 
-export function App() {
+// ─── Landing Page (Home) ───────────────────────────────────────────────────────
+function HomePage() {
+  const navigate = useNavigate();
   const [currentLang, setCurrentLang] = useState<'en' | 'mr' | 'hi'>('en');
   const [fontSizeOffset, setFontSizeOffset] = useState<number>(0);
 
   // Modals state
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isEligibilityOpen, setIsEligibilityOpen] = useState(false);
-  const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
-  const [directorySearchQuery, setDirectorySearchQuery] = useState('');
-  const [directorySector, setDirectorySector] = useState('all');
 
   const handleFontSizeChange = (delta: number) => {
     if (delta === 0) setFontSizeOffset(0);
@@ -28,21 +31,15 @@ export function App() {
   };
 
   const handleSearch = (query: string, _scope: string) => {
-    setDirectorySearchQuery(query);
-    setDirectorySector('all');
-    setIsDirectoryOpen(true);
+    navigate(`/schemes?q=${encodeURIComponent(query)}`);
   };
 
   const handlePopularSelect = (tag: string) => {
-    setDirectorySearchQuery(tag);
-    setDirectorySector('all');
-    setIsDirectoryOpen(true);
+    navigate(`/schemes?q=${encodeURIComponent(tag)}`);
   };
 
   const handleSelectSector = (sectorId: string) => {
-    setDirectorySector(sectorId);
-    setDirectorySearchQuery('');
-    setIsDirectoryOpen(true);
+    navigate(`/schemes?sector=${encodeURIComponent(sectorId)}`);
   };
 
   const handleVoiceTrigger = () => {
@@ -55,7 +52,7 @@ export function App() {
     } else if (stepNumber === 2) {
       setIsEligibilityOpen(true);
     } else if (stepNumber === 3) {
-      setIsDirectoryOpen(true);
+      navigate('/schemes');
     }
   };
 
@@ -75,11 +72,7 @@ export function App() {
       {/* 2. Main Civic Navigation Header */}
       <Navbar
         currentLang={currentLang}
-        onOpenDirectory={() => {
-          setDirectorySearchQuery('');
-          setDirectorySector('all');
-          setIsDirectoryOpen(true);
-        }}
+        onOpenDirectory={() => navigate('/schemes')}
         onOpenEligibility={() => setIsEligibilityOpen(true)}
         onOpenAssistant={() => setIsAssistantOpen(true)}
       />
@@ -99,11 +92,7 @@ export function App() {
 
         {/* 5. 3 Action Cards (Find Schemes, Check Eligibility, Ask AI) */}
         <ActionCards
-          onBrowseDirectory={() => {
-            setDirectorySearchQuery('');
-            setDirectorySector('all');
-            setIsDirectoryOpen(true);
-          }}
+          onBrowseDirectory={() => navigate('/schemes')}
           onCheckEligibility={() => setIsEligibilityOpen(true)}
           onAskAI={() => setIsAssistantOpen(true)}
         />
@@ -111,11 +100,7 @@ export function App() {
         {/* 6. Explore Schemes by Sector & Need (8 Sector Grid) */}
         <SectorGrid
           onSelectSector={handleSelectSector}
-          onViewAll={() => {
-            setDirectorySearchQuery('');
-            setDirectorySector('all');
-            setIsDirectoryOpen(true);
-          }}
+          onViewAll={() => navigate('/schemes')}
         />
 
         {/* 7. How GramSathi AI Works in 3 Simple Steps */}
@@ -139,14 +124,22 @@ export function App() {
         onClose={() => setIsEligibilityOpen(false)}
         currentLang={currentLang}
       />
-
-      <SchemeDirectoryModal
-        isOpen={isDirectoryOpen}
-        onClose={() => setIsDirectoryOpen(false)}
-        initialSearchQuery={directorySearchQuery}
-        initialSector={directorySector}
-      />
     </div>
+  );
+}
+
+// ─── App Router ───────────────────────────────────────────────────────────────
+export function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/schemes" element={<SchemesPage />} />
+      <Route path="/scheme/:id" element={<SchemeDetailPage />} />
+      <Route path="/schemes/:id" element={<SchemeDetailPage />} />
+      <Route path="/signin" element={<SignInPage />} />
+      <Route path="/login" element={<SignInPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+    </Routes>
   );
 }
 
