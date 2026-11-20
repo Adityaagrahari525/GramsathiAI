@@ -100,8 +100,15 @@ STRICT CIVIC RULES:
 
           const prompt = `Language requested: ${language}\n\nVERIFIED SCHEME RECORDS:\n${schemeContext}\n\nCITIZEN QUERY:\n"${message}"\n\nProvide a simple, clear, grounded explanation:`;
 
-          // Try models available on this API key tier
-          const candidateModels = ['gemini-2.5-flash', 'gemma-4-26b-a4b-it', 'gemini-flash-latest'];
+          // Try currently supported models with reliable fallback chain
+          const candidateModels = [
+            'gemini-3.5-flash',
+            'gemini-3.6-flash',
+            'gemini-3.7-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-3.5-flash-lite',
+            'gemini-3.8-flash'
+          ];
           let generatedText: string | null = null;
 
           for (const m of candidateModels) {
