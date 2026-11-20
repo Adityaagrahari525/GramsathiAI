@@ -1,27 +1,69 @@
 import React, { useState } from 'react';
-import { Search, Mic, CheckCircle2, Bot, Volume2, Sparkles, ChevronDown } from 'lucide-react';
+import { Search, Mic, MicOff, CheckCircle2, Bot, Volume2, Sparkles, ChevronDown } from 'lucide-react';
+import { BrowserVoiceService } from '../services/voiceService';
 
 interface HeroSectionProps {
   currentLang: 'en' | 'mr' | 'hi';
   onSearch: (query: string, scope: string) => void;
   onPopularSelect: (tag: string) => void;
-  onVoiceTrigger: () => void;
+  onVoiceTrigger?: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   currentLang,
   onSearch,
   onPopularSelect,
-  onVoiceTrigger,
 }) => {
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState('all');
+  const [isListening, setIsListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       onSearch(query.trim(), scope);
     }
+  };
+
+  const handleMicClick = () => {
+    setVoiceError(null);
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+
+    if (!BrowserVoiceService.isSpeechRecognitionSupported()) {
+      setVoiceError(
+        currentLang === 'mr'
+          ? 'तुमच्या ब्राउझरमध्ये व्हॉइस इनपुट उपलब्ध नाही. कृपया Chrome किंवा Edge वापरा.'
+          : 'Voice input is not supported in this browser. Please use Chrome or Edge.'
+      );
+      return;
+    }
+
+    setIsListening(true);
+    BrowserVoiceService.startListening({
+      language: currentLang,
+      onStart: () => {
+        setIsListening(true);
+      },
+      onResult: (transcript: string) => {
+        setIsListening(false);
+        if (transcript.trim()) {
+          setQuery(transcript.trim());
+          // Automatically trigger search for the captured speech
+          onSearch(transcript.trim(), scope);
+        }
+      },
+      onError: (errMsg: string) => {
+        setIsListening(false);
+        setVoiceError(errMsg);
+      },
+      onEnd: () => {
+        setIsListening(false);
+      },
+    });
   };
 
   const popularTags = [
@@ -93,12 +135,27 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               {/* Voice Input Mic Button */}
               <button
                 type="button"
-                onClick={onVoiceTrigger}
-                title="Speak in your language"
-                className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1850b5] text-xs font-semibold mr-1 transition-all"
+                onClick={handleMicClick}
+                title={isListening ? "Listening... Speak now" : "Speak to search schemes"}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold mr-1 transition-all ${
+                  isListening
+                    ? 'bg-red-500 text-white animate-pulse shadow-sm'
+                    : 'bg-blue-50 hover:bg-blue-100 text-[#1850b5]'
+                }`}
               >
-                <Mic className="w-3.5 h-3.5 text-[#1850b5]" />
-                <span className="hidden sm:inline">माइक</span>
+                {isListening ? (
+                  <>
+                    <MicOff className="w-3.5 h-3.5" />
+                    <span>{currentLang === 'mr' ? 'ऐकत आहे...' : 'Listening...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3.5 h-3.5 text-[#1850b5]" />
+                    <span className="hidden sm:inline">
+                      {currentLang === 'mr' ? 'माइक' : 'Voice'}
+                    </span>
+                  </>
+                )}
               </button>
             </div>
 
@@ -111,6 +168,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <span>Search Schemes</span>
             </button>
           </form>
+          {voiceError && (
+            <p className="mt-2 text-xs text-red-600 font-medium text-left px-2">
+              ⚠️ {voiceError}
+            </p>
+          )}
         </div>
 
         {/* Popular Searches */}
