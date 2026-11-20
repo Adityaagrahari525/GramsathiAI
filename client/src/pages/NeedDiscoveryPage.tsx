@@ -1,17 +1,77 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
+import { ReverseDiscoveryService, PRESET_NEEDS } from '../services/reverseDiscoveryService';
+import { TopBar } from '../components/TopBar';
+import { Navbar } from '../components/Navbar';
 
 export function NeedDiscoveryPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { t, language } = useLanguage();
+
+  // Search query for natural language needs
+  const [needQuery, setNeedQuery] = useState<string>('');
 
   // Active need category (default: 'farming')
   const [selectedNeed, setSelectedNeed] = useState<string>('farming');
 
-  // Sub-filter pill (default: 'solar')
-  const [activeSubFilter, setActiveSubFilter] = useState<string>('solar');
+  // Sub-filter pill (default: 'all')
+  const [activeSubFilter, setActiveSubFilter] = useState<string>('all');
+
+  // Sort by filter
+  const [sortBy, setSortBy] = useState<'match' | 'subsidy' | 'steps'>('match');
 
   // Eligible only toggle
   const [eligibleOnly, setEligibleOnly] = useState<boolean>(true);
+
+  // Dynamic Rule-Based Reverse Discovery Matching (REST API with instant fallback)
+  const [matchedResults, setMatchedResults] = useState(() => {
+    return ReverseDiscoveryService.matchNeeds(needQuery || selectedNeed, {
+      eligibleOnly,
+      userHolding: 2.5
+    });
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    ReverseDiscoveryService.matchNeedsAsync(needQuery || selectedNeed, {
+      eligibleOnly,
+      userHolding: 2.5
+    }).then((results) => {
+      if (mounted && Array.isArray(results) && results.length > 0) {
+        setMatchedResults(results);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [needQuery, selectedNeed, eligibleOnly]);
+
+  // Filtered and sorted results based on sub-filters and sort select
+  const filteredAndSortedResults = useMemo(() => {
+    let list = [...matchedResults];
+    if (activeSubFilter !== 'all') {
+      list = list.filter(item => {
+        const text = (item.scheme.name + ' ' + item.scheme.summary + ' ' + item.scheme.tags.join(' ')).toLowerCase();
+        if (activeSubFilter === 'solar') return text.includes('solar') || text.includes('pump') || text.includes('kusum');
+        if (activeSubFilter === 'drip') return text.includes('drip') || text.includes('sprinkler') || text.includes('irrigation');
+        if (activeSubFilter === 'pond') return text.includes('pond') || text.includes('well') || text.includes('water');
+        if (activeSubFilter === 'machinery') return text.includes('tractor') || text.includes('machinery') || text.includes('equipment');
+        return true;
+      });
+    }
+    if (sortBy === 'subsidy') {
+      list.sort((a, b) => b.scheme.benefitAmount.localeCompare(a.scheme.benefitAmount));
+    } else if (sortBy === 'steps') {
+      list.sort((a, b) => (a.scheme.applicationSteps?.length || 5) - (b.scheme.applicationSteps?.length || 5));
+    } else {
+      list.sort((a, b) => b.matchScore - a.matchScore);
+    }
+    return list;
+  }, [matchedResults, activeSubFilter, sortBy]);
 
   // Audio Speech state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -37,93 +97,10 @@ export function NeedDiscoveryPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
       {/* ── 1. Top Civic Header Ribbon ── */}
-      <div className="bg-slate-100 border-b border-slate-200 text-slate-600 text-[11px] py-1.5 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="w-3.5 h-2.5 rounded-xs bg-linear-to-b from-orange-500 via-white to-green-600 border border-slate-300 inline-block shrink-0" />
-            <span className="font-semibold text-slate-800">Government of Maharashtra</span>
-            <span className="text-slate-400">|</span>
-            <span className="font-medium text-slate-700 truncate">Public Civic Service Portal</span>
-          </div>
-          <div className="flex items-center space-x-3 shrink-0">
-            <div className="hidden sm:flex items-center space-x-1 text-slate-500">
-              <button className="px-1 hover:text-slate-900 font-semibold">A-</button>
-              <button className="px-1 hover:text-slate-900 font-bold">A</button>
-              <button className="px-1 hover:text-slate-900 font-extrabold">A+</button>
-            </div>
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <span className="hidden sm:inline hover:underline cursor-pointer">Screen Reader</span>
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <div className="flex items-center space-x-1.5 font-semibold">
-              <span className="text-slate-600 hover:text-blue-700 cursor-pointer text-xs">मराठी</span>
-              <span className="text-slate-300">/</span>
-              <span className="text-slate-600 hover:text-blue-700 cursor-pointer text-xs">हिंदी</span>
-              <span className="text-slate-300">/</span>
-              <span className="bg-[#1850b5] text-white text-[10px] px-2 py-0.5 rounded-full font-bold">English</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TopBar />
 
       {/* ── 2. Civic Navbar ── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#0f3675] to-[#1850b5] flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-blue-900/10">
-                GS
-              </div>
-              <div>
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-2xl font-bold tracking-tight text-[#0f3675]">GramSathi</span>
-                  <span className="text-2xl font-extrabold text-[#1850b5]">.AI</span>
-                </div>
-                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
-                  GramSathi AI Citizen Portal
-                </div>
-              </div>
-            </div>
-
-            {/* Nav Menu */}
-            <nav className="hidden xl:flex items-center space-x-1 font-medium text-xs text-slate-700">
-              <Link to="/schemes" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Explore Schemes
-              </Link>
-              <Link to="/schemes?saved=true" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Saved Schemes
-              </Link>
-              <Link to="/assistant" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                AI Citizen Assistant
-              </Link>
-              <Link to="/eligibility/results" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Eligibility Results
-              </Link>
-              <Link to="/needs" className="px-3.5 py-1.5 text-white font-bold bg-[#1850b5] rounded-lg shadow-2xs">
-                Scheme Journey & Tracker
-              </Link>
-              <a href="https://grievances.maharashtra.gov.in" target="_blank" rel="noopener noreferrer" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Grievance / Helpdesk
-              </a>
-              <Link to="/profile" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Citizen Profile
-              </Link>
-            </nav>
-
-            {/* Helpline & Profile Button */}
-            <div className="flex items-center space-x-3">
-              <div className="hidden sm:flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                <span>📞</span>
-                <span>1800-123-GRAM</span>
-              </div>
-              <Link to="/profile" className="flex items-center space-x-2 bg-blue-50 text-[#1850b5] border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold">
-                <span>👤</span>
-                <span>Profile</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* ── 3. Breadcrumb & Sync Status ── */}
       <div className="bg-white border-b border-slate-200 py-2.5 px-4 sm:px-6 lg:px-8">
@@ -131,14 +108,14 @@ export function NeedDiscoveryPage() {
           <div className="text-slate-500 font-medium">
             <span className="hover:text-blue-700 cursor-pointer" onClick={() => navigate('/')}>GramSathi AI</span>
             <span> / </span>
-            <span className="hover:text-blue-700 cursor-pointer" onClick={() => navigate('/schemes')}>Direct Benefits & Welfare</span>
+            <span className="hover:text-blue-700 cursor-pointer" onClick={() => navigate('/schemes')}>{t('Direct Benefits & Welfare')}</span>
             <span> / </span>
-            <span className="text-slate-800 font-bold">Citizen Services</span>
+            <span className="text-slate-800 font-bold">{t('Citizen Services')}</span>
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
-            <span className="w-2 h-2 rounded-full bg-blue-600 inline-block animate-pulse" />
-            <span>Workflow Sync: MahaDBT & PM-Kisan Live</span>
+          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+            <span>{t('Demonstration Workflow • MahaDBT & PM-Kisan Model')}</span>
           </div>
         </div>
       </div>
@@ -150,10 +127,10 @@ export function NeedDiscoveryPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Find Government Support by Your Need
+              {t('Find Government Support by Your Need')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed font-medium">
-              Select what assistance your household needs today. GramSathi AI automatically matches verified subsidies, grants, and civic schemes you qualify for.
+              {t('Select what assistance your household needs today. GramSathi AI automatically matches verified subsidies, grants, and civic schemes you qualify for.')}
             </p>
           </div>
 
@@ -167,12 +144,64 @@ export function NeedDiscoveryPage() {
             </div>
             <div>
               <div className="text-sm font-extrabold text-[#0f3675]">
-                {isPlayingAudio ? 'Listening... बोलत राहा' : 'Voice Search (बोलून शोधा)'}
+                {isPlayingAudio ? (language === 'mr' ? 'ऐकत आहे... बोलत राहा' : language === 'hi' ? 'सुन रहा है... बोलते रहें' : 'Listening... please speak') : t('Voice Search (बोलून शोधा)')}
               </div>
               <div className="text-xs text-slate-500 font-medium mt-0.5">
-                Speak in Marathi, Hindi, or English
+                {t('Speak in Marathi, Hindi, or English')}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* ── 4.1b Describe Your Need Search Console (Rule-Based Matching) ── */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <label htmlFor="needInput" className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+              {t('Describe what support you need (आपली गरज सांगा किंवा लिहा):')}
+            </label>
+            <span className="text-[11px] text-slate-500 font-medium">{t('Modular Rule-Based Intent Matching')}</span>
+          </div>
+
+          <div className="relative flex items-center">
+            <span className="absolute left-3.5 text-slate-400 text-sm">🔍</span>
+            <input
+              id="needInput"
+              type="text"
+              value={needQuery}
+              onChange={(e) => setNeedQuery(e.target.value)}
+              placeholder={t('e.g. I want financial support for farming, I want to start a small business, I am a member of a self-help group...')}
+              className="w-full pl-10 pr-24 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#1850b5] focus:outline-none"
+            />
+            {needQuery && (
+              <button
+                type="button"
+                onClick={() => setNeedQuery('')}
+                className="absolute right-3 text-xs font-bold text-slate-400 hover:text-slate-600 bg-slate-200 px-2 py-0.5 rounded-md"
+              >
+                {t('Clear')}
+              </button>
+            )}
+          </div>
+
+          {/* Quick Need Preset Chips */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-1 text-xs">
+            <span className="text-slate-500 font-medium text-[11px]">{t('Popular Needs:')}</span>
+            {PRESET_NEEDS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => {
+                  setNeedQuery(preset.query);
+                  setSelectedNeed(preset.targetCategory);
+                }}
+                className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${needQuery === preset.query
+                    ? 'bg-[#1850b5] text-white border-[#1850b5] shadow-2xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+              >
+                <span>{preset.icon} {t(preset.query)}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -181,14 +210,14 @@ export function NeedDiscoveryPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">
-                Step 1: Choose Your Area of Need
+                {t('Step 1: Choose Your Area of Need')}
               </h2>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Select a civic category to see tailored government programs
+                {t('Select a civic category to see tailored government programs')}
               </p>
             </div>
             <span className="text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-lg border border-slate-200">
-              6 Categories Available
+              6 {t('Categories Available')}
             </span>
           </div>
 
@@ -198,11 +227,10 @@ export function NeedDiscoveryPage() {
             {/* Need Card 1: Farming & Agriculture (Selected) */}
             <div
               onClick={() => setSelectedNeed('farming')}
-              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                selectedNeed === 'farming'
+              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${selectedNeed === 'farming'
                   ? 'border-blue-600 bg-white shadow-sm'
                   : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
+                }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -212,23 +240,23 @@ export function NeedDiscoveryPage() {
                   <div className="flex items-center gap-1.5">
                     {selectedNeed === 'farming' && (
                       <span className="bg-[#1850b5] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                        Selected
+                        {t('Selected')}
                       </span>
                     )}
                     <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                      16 Schemes
+                      16 {t('Schemes')}
                     </span>
                   </div>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900">Farming & Agriculture</h3>
+                <h3 className="text-base font-bold text-slate-900">{t('Farming & Agriculture')}</h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed font-medium">
-                  Solar pumps, micro-irrigation, seed grants, and machinery subsidies.
+                  {t('Solar pumps, micro-irrigation, seed grants, and machinery subsidies.')}
                 </p>
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 text-xs font-bold text-[#1850b5] flex items-center justify-between">
-                <span>16 Active Programs</span>
+                <span>16 {t('Active Programs')}</span>
                 <span>→</span>
               </div>
             </div>
@@ -236,11 +264,10 @@ export function NeedDiscoveryPage() {
             {/* Need Card 2: Business & Self-Employment */}
             <div
               onClick={() => setSelectedNeed('business')}
-              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                selectedNeed === 'business'
+              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${selectedNeed === 'business'
                   ? 'border-blue-600 bg-white shadow-sm'
                   : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
+                }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -248,18 +275,18 @@ export function NeedDiscoveryPage() {
                     💼
                   </div>
                   <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                    8 Schemes
+                    8 {t('Schemes')}
                   </span>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900">Business & Self-Employment</h3>
+                <h3 className="text-base font-bold text-slate-900">{t('Business & Self-Employment')}</h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed font-medium">
-                  Mudra loans, PMEGP subsidized credit, and village enterprise grants.
+                  {t('Mudra loans, PMEGP subsidized credit, and village enterprise grants.')}
                 </p>
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Up to 35% Subsidy</span>
+                <span>{t('Up to 35% Subsidy')}</span>
                 <span>→</span>
               </div>
             </div>
@@ -267,11 +294,10 @@ export function NeedDiscoveryPage() {
             {/* Need Card 3: Education & Scholarships */}
             <div
               onClick={() => setSelectedNeed('education')}
-              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                selectedNeed === 'education'
+              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${selectedNeed === 'education'
                   ? 'border-blue-600 bg-white shadow-sm'
                   : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
+                }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -279,18 +305,18 @@ export function NeedDiscoveryPage() {
                     🎓
                   </div>
                   <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                    11 Schemes
+                    11 {t('Schemes')}
                   </span>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900">Education & Scholarships</h3>
+                <h3 className="text-base font-bold text-slate-900">{t('Education & Scholarships')}</h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed font-medium">
-                  Fee waivers, Swadhar hostel aid, and ITI training stipends.
+                  {t('Fee waivers, Swadhar hostel aid, and ITI training stipends.')}
                 </p>
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Full Fee Reimbursements</span>
+                <span>{t('Full Fee Reimbursements')}</span>
                 <span>→</span>
               </div>
             </div>
@@ -298,11 +324,10 @@ export function NeedDiscoveryPage() {
             {/* Need Card 4: Employment & Training */}
             <div
               onClick={() => setSelectedNeed('employment')}
-              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                selectedNeed === 'employment'
+              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${selectedNeed === 'employment'
                   ? 'border-blue-600 bg-white shadow-sm'
                   : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
+                }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -310,18 +335,18 @@ export function NeedDiscoveryPage() {
                     👷
                   </div>
                   <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                    6 Schemes
+                    6 {t('Schemes')}
                   </span>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900">Employment & Training</h3>
+                <h3 className="text-base font-bold text-slate-900">{t('Employment & Training')}</h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed font-medium">
-                  MGNREGA wage employment and Yuva apprentice monthly stipends.
+                  {t('MGNREGA wage employment and Yuva apprentice monthly stipends.')}
                 </p>
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Guaranteed Work & Stipend</span>
+                <span>{t('Guaranteed Work & Stipend')}</span>
                 <span>→</span>
               </div>
             </div>
@@ -329,11 +354,10 @@ export function NeedDiscoveryPage() {
             {/* Need Card 5: Women & Child Welfare */}
             <div
               onClick={() => setSelectedNeed('women')}
-              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                selectedNeed === 'women'
+              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${selectedNeed === 'women'
                   ? 'border-blue-600 bg-white shadow-sm'
                   : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
+                }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -341,18 +365,18 @@ export function NeedDiscoveryPage() {
                     👩‍👧
                   </div>
                   <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                    9 Schemes
+                    9 {t('Schemes')}
                   </span>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900">Women & Child Welfare</h3>
+                <h3 className="text-base font-bold text-slate-900">{t('Women & Child Welfare')}</h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed font-medium">
-                  Ladki Bahin direct monthly benefit, SHG loans, and maternal aid.
+                  {t('Ladki Bahin direct monthly benefit, SHG loans, and maternal aid.')}
                 </p>
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>₹1,500/month Direct Grant</span>
+                <span>{t('₹1,500/month Direct Grant')}</span>
                 <span>→</span>
               </div>
             </div>
@@ -360,11 +384,10 @@ export function NeedDiscoveryPage() {
             {/* Need Card 6: Pensions & Housing Aid */}
             <div
               onClick={() => setSelectedNeed('pensions')}
-              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                selectedNeed === 'pensions'
+              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${selectedNeed === 'pensions'
                   ? 'border-blue-600 bg-white shadow-sm'
                   : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
+                }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -372,18 +395,18 @@ export function NeedDiscoveryPage() {
                     🏠
                   </div>
                   <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                    7 Schemes
+                    7 {t('Schemes')}
                   </span>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900">Pensions & Housing Aid</h3>
+                <h3 className="text-base font-bold text-slate-900">{t('Pensions & Housing Aid')}</h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed font-medium">
-                  Senior citizen pensions, disability allowances, and Gharkul housing.
+                  {t('Senior citizen pensions, disability allowances, and Gharkul housing.')}
                 </p>
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Social Safety Net</span>
+                <span>{t('Social Safety Net')}</span>
                 <span>→</span>
               </div>
             </div>
@@ -394,7 +417,7 @@ export function NeedDiscoveryPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-slate-200">
           <div>
             <div className="text-[11px] font-extrabold text-[#1850b5] uppercase tracking-wider mb-2">
-              FILTER CATEGORY: Farming & Agriculture Support
+              {t('FILTER CATEGORY: Farming & Agriculture Support')}
             </div>
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
               {[
@@ -407,13 +430,12 @@ export function NeedDiscoveryPage() {
                 <button
                   key={pill.id}
                   onClick={() => setActiveSubFilter(pill.id)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
-                    activeSubFilter === pill.id
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeSubFilter === pill.id
                       ? 'bg-[#1850b5] text-white shadow-2xs'
                       : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
-                  }`}
+                    }`}
                 >
-                  {pill.label}
+                  {t(pill.label)}
                 </button>
               ))}
             </div>
@@ -427,7 +449,7 @@ export function NeedDiscoveryPage() {
               onChange={e => setEligibleOnly(e.target.checked)}
               className="w-4 h-4 rounded text-[#1850b5]"
             />
-            <span>Filter to Eligible Only (2.5 Acres)</span>
+            <span>{t('Filter to Eligible Only (2.5 Acres)')}</span>
           </label>
         </div>
 
@@ -436,204 +458,135 @@ export function NeedDiscoveryPage() {
           <div className="flex items-center justify-between">
             <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-600" />
-              <span>Recommended Schemes (4 Matches Found)</span>
+              <span>{t('Recommended Schemes')} ({filteredAndSortedResults.length} {t('Matches Found')})</span>
             </h3>
 
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-400 font-medium">Sort by:</span>
-              <select className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700">
-                <option>Highest Subsidy Amount</option>
-                <option>Shortest Processing Time</option>
-                <option>Highest Match Percentage</option>
+              <span className="text-slate-400 font-medium">{t('Sort by:')}</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'match' | 'subsidy' | 'steps')}
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="match">{t('Highest Match Percentage')}</option>
+                <option value="subsidy">{t('Highest Subsidy Amount')}</option>
+                <option value="steps">{t('Shortest Application Path')}</option>
               </select>
             </div>
           </div>
 
-          {/* Scheme Card 1 */}
-          <article className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-500">Dept. of Energy & MSEDCL</span>
-                <span className="text-slate-300">•</span>
-                <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                  95% Profile Match
-                </span>
+          {filteredAndSortedResults.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-xl text-slate-400">
+                🔍
               </div>
+              <h4 className="text-base font-bold text-slate-800">{t('No schemes found matching this criteria')}</h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                {t('Try clearing your search query or selecting a different civic need category above.')}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setNeedQuery('');
+                  setActiveSubFilter('all');
+                  setSelectedNeed('farming');
+                }}
+                className="px-4 py-2 bg-[#1850b5] text-white rounded-xl text-xs font-bold shadow-xs hover:bg-[#0f3675]"
+              >
+                {t('Reset Filters')}
+              </button>
             </div>
+          ) : (
+            filteredAndSortedResults.map((result) => {
+              const scheme = result.scheme;
+              return (
+                <article key={scheme.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-500">{t(scheme.departmentShort || scheme.department)}</span>
+                      <span className="text-slate-300">•</span>
+                      <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                        {result.matchScore}% {t('Profile Match')}
+                      </span>
+                      {scheme.level && (
+                        <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                          {scheme.level === 'Maharashtra' ? t('State Scheme') : scheme.level === 'Central' ? t('Central Scheme') : t('Joint (State + Central)')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div>
-                <h4 className="text-lg font-black text-slate-900 leading-snug">
-                  Mukhyamantri Saur Krushi Vahini / Solar Pump Yojana (MSKVY 2.0)
-                </h4>
-                <div className="p-2.5 bg-blue-50/70 rounded-xl border border-blue-200/80 text-xs text-blue-950 font-medium mt-2">
-                  ✓ Matched for your 2.5-acre Baramati holding: Provides up to 90% subsidy for off-grid daylight solar pumps.
-                </div>
-              </div>
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div>
+                      <h4 className="text-lg font-black text-slate-900 leading-snug">
+                        {language === 'mr' ? (scheme.nameMr || scheme.name) : language === 'hi' ? (scheme.nameHi || scheme.nameMr || scheme.name) : scheme.name}
+                      </h4>
+                      <div className="p-2.5 bg-blue-50/70 rounded-xl border border-blue-200/80 text-xs text-blue-950 font-medium mt-2">
+                        ✓ {t(result.matchedReason)}
+                      </div>
+                      <div className="text-xs text-slate-600 mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-slate-700">{t('Key Eligibility:')}</span>
+                        <span>{t(result.relevantEligibility)}</span>
+                      </div>
+                    </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => navigate('/schemes/saur-krushi-vahini')}
-                  className="px-5 py-2.5 bg-[#1850b5] hover:bg-[#0f3675] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-[0.98]"
-                >
-                  <span>Apply Now</span>
-                  <span>→</span>
-                </button>
-                <button
-                  onClick={() => navigate('/schemes/saur-krushi-vahini')}
-                  className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-colors shadow-2xs"
-                >
-                  ◇ Scheme Rules
-                </button>
-              </div>
-            </div>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                      <button
+                        onClick={() => navigate(result.detailUrl)}
+                        className="px-5 py-2.5 bg-[#1850b5] hover:bg-[#0f3675] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-[0.98]"
+                      >
+                        <span>{t('Apply / Track')}</span>
+                        <span>→</span>
+                      </button>
+                      <button
+                        onClick={() => navigate(result.detailUrl)}
+                        className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-colors shadow-2xs"
+                      >
+                        ◇ {t('Scheme Details')}
+                      </button>
+                      {scheme.officialUrl && (
+                        <a
+                          href={scheme.officialUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold transition-colors"
+                          title={t('Official Portal')}
+                        >
+                          {t('Official Portal')} ↗
+                        </a>
+                      )}
+                    </div>
+                  </div>
 
-            {/* 3 Metric Tiles */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100 text-xs">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Financial Subsidy</div>
-                <div className="text-sm font-extrabold text-[#1850b5] mt-0.5">90% Subsidy</div>
-                <div className="text-[10px] text-slate-500 font-medium">Farmer pays ~₹16,000 only</div>
-              </div>
+                  {/* 3 Metric Tiles */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100 text-xs">
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t('Financial Benefit / Subsidy')}</div>
+                      <div className="text-sm font-extrabold text-[#1850b5] mt-0.5 truncate">{scheme.benefitAmount}</div>
+                      <div className="text-[10px] text-slate-500 font-medium truncate">{t(scheme.highlightTitle || 'Direct Beneficiary Support')}</div>
+                    </div>
 
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Estimated Processing</div>
-                <div className="text-sm font-extrabold text-slate-900 mt-0.5">21-30 Days</div>
-                <div className="text-[10px] text-slate-500 font-medium">Includes site verification</div>
-              </div>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t('Application Steps')}</div>
+                      <div className="text-sm font-extrabold text-slate-900 mt-0.5">
+                        {scheme.applicationSteps?.length || 5} {t('Documented Stages')}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-medium truncate">{t(scheme.applicationMode || 'Online via Portal')}</div>
+                    </div>
 
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Land Holding</div>
-                <div className="text-sm font-extrabold text-slate-900 mt-0.5">0.5 to 5 Acres</div>
-                <div className="text-[10px] text-slate-500 font-medium">7/12 extract eligible</div>
-              </div>
-            </div>
-          </article>
-
-          {/* Scheme Card 2 */}
-          <article className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-500">Dept. of Agriculture (MahaDBT)</span>
-                <span className="text-slate-300">•</span>
-                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  Instant Match
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div>
-                <h4 className="text-lg font-black text-slate-900 leading-snug">
-                  PMKSY: Per Drop More Crop (Micro-Irrigation Drip & Sprinkler)
-                </h4>
-                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 font-medium mt-2">
-                  ✓ Matched for water conservation: Up to 80% capital coverage for 50-inline drip irrigation and filters.
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => window.open('https://mahadbt.maharashtra.gov.in', '_blank')}
-                  className="px-5 py-2.5 bg-[#1850b5] hover:bg-[#0f3675] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-[0.98]"
-                >
-                  <span>Apply via MahaDBT</span>
-                  <span>↗</span>
-                </button>
-                <button
-                  onClick={() => navigate('/schemes')}
-                  className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-colors shadow-2xs"
-                >
-                  ◇ Scheme Rules
-                </button>
-              </div>
-            </div>
-
-            {/* 3 Metric Tiles */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100 text-xs">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Subsidy Coverage</div>
-                <div className="text-sm font-extrabold text-[#1850b5] mt-0.5">55% to 80%</div>
-                <div className="text-[10px] text-slate-500 font-medium">Direct-to-bank DBT</div>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Required Records</div>
-                <div className="text-sm font-extrabold text-slate-900 mt-0.5">7/12 & 8-A</div>
-                <div className="text-[10px] text-slate-500 font-medium">Water source registered</div>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Kit Types</div>
-                <div className="text-sm font-extrabold text-slate-900 mt-0.5">Inline Drip</div>
-                <div className="text-[10px] text-slate-500 font-medium">Includes mainlines & valves</div>
-              </div>
-            </div>
-          </article>
-
-          {/* Scheme Card 3 */}
-          <article className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-500">Maharashtra State Plan</span>
-                <span className="text-slate-300">•</span>
-                <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                  Drought Support
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div>
-                <h4 className="text-lg font-black text-slate-900 leading-snug">
-                  Baliraja Sanjeevani Yojana (Farm Pond Lining Subsidy)
-                </h4>
-                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 font-medium mt-2">
-                  ✓ Direct capital grant for 500-micron plastic sheet lining to prevent summer percolation loss.
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => window.open('https://mahadbt.maharashtra.gov.in', '_blank')}
-                  className="px-5 py-2.5 bg-[#1850b5] hover:bg-[#0f3675] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-[0.98]"
-                >
-                  <span>Apply for Grant</span>
-                  <span>→</span>
-                </button>
-                <button
-                  onClick={() => navigate('/schemes')}
-                  className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-colors shadow-2xs"
-                >
-                  ◇ Scheme Rules
-                </button>
-              </div>
-            </div>
-
-            {/* 3 Metric Tiles */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100 text-xs">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Lining Grant</div>
-                <div className="text-sm font-extrabold text-[#1850b5] mt-0.5">₹75,000 Flat</div>
-                <div className="text-[10px] text-slate-500 font-medium">Aadhaar linked account</div>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Prerequisite</div>
-                <div className="text-sm font-extrabold text-slate-900 mt-0.5">Excavated Pond</div>
-                <div className="text-[10px] text-slate-500 font-medium">Self-dug or Magel Tyala</div>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Inspection Mode</div>
-                <div className="text-sm font-extrabold text-slate-900 mt-0.5">Geo-tag Photo</div>
-                <div className="text-[10px] text-slate-500 font-medium">Krishi Sahayak mobile app</div>
-              </div>
-            </div>
-          </article>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t('Target Beneficiaries')}</div>
+                      <div className="text-sm font-extrabold text-slate-900 mt-0.5 truncate">
+                        {scheme.targetBeneficiaries?.slice(0, 2).join(', ') || 'Rural Citizens'}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-medium truncate">{scheme.targetBeneficiaryText || 'Verified resident households'}</div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })
+          )}
         </section>
 
         {/* ── 4.5 Bottom CSC Assistance Callout ── */}
@@ -641,9 +594,9 @@ export function NeedDiscoveryPage() {
           <div className="flex items-start gap-3">
             <span className="text-xl">🏢</span>
             <div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">NEED IN-PERSON OR CALL ASSISTANCE?</div>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('NEED IN-PERSON OR CALL ASSISTANCE?')}</div>
               <p className="text-xs font-bold text-slate-800 mt-0.5">
-                Visit your nearest <strong>Aaple Sarkar Seva Kendra (CSC)</strong> in Baramati or call our free citizen helpline.
+                {t('Visit your nearest Aaple Sarkar Seva Kendra (CSC) in Baramati or call our free citizen helpline.')}
               </p>
             </div>
           </div>
@@ -654,10 +607,10 @@ export function NeedDiscoveryPage() {
               <span>1800-123-GRAM (24x7)</span>
             </div>
             <button
-              onClick={() => alert('Locating nearest CSC Center in Baramati taluka...')}
+              onClick={() => showToast(t('Locating nearest CSC / Aaple Sarkar Seva Kendra in Baramati taluka...'), 'info')}
               className="px-5 py-2.5 bg-[#1850b5] hover:bg-[#0f3675] text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
             >
-              🏢 Find Nearest CSC
+              🏢 {t('Find Nearest CSC')}
             </button>
           </div>
         </div>
@@ -667,17 +620,17 @@ export function NeedDiscoveryPage() {
       <footer className="bg-[#0f3675] text-white py-10 px-4 sm:px-6 lg:px-8 border-t border-blue-900 mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-blue-200">
           <div>
-            <div className="text-base font-bold text-white mb-1">GramSathi AI — Government of Maharashtra</div>
-            <div>© 2026 Government of Maharashtra, Rural Informatics Directorate.</div>
+            <div className="text-base font-bold text-white mb-1">{t('GramSathi AI — Government of Maharashtra')}</div>
+            <div>{t('© 2026 Government of Maharashtra, Rural Informatics Directorate.')}</div>
           </div>
           <div className="flex items-center gap-4 text-blue-300">
-            <span className="hover:underline cursor-pointer">Terms of Service</span>
+            <span className="hover:underline cursor-pointer">{t('Terms of Service')}</span>
             <span>•</span>
-            <span className="hover:underline cursor-pointer">Privacy Policy</span>
+            <span className="hover:underline cursor-pointer">{t('Privacy Policy')}</span>
             <span>•</span>
-            <span className="hover:underline cursor-pointer">Accessibility Statement</span>
+            <span className="hover:underline cursor-pointer">{t('Accessibility Statement')}</span>
             <span>•</span>
-            <span>Helpline: <strong className="text-white">1800-123-GRAM</strong></span>
+            <span>{t('Helpline')}: <strong className="text-white">1800-123-GRAM</strong></span>
           </div>
         </div>
       </footer>

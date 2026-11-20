@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import type { Scheme } from '../data/schemesData';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -17,21 +18,59 @@ import {
   ArrowRight,
   Sun,
   Shield,
-  Zap
+  Zap,
+  ListOrdered
 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { EligibilityModal } from '../components/EligibilityModal';
 import { AskAssistantModal } from '../components/AskAssistantModal';
+import { SchemeService } from '../services/schemeService';
+import { useSavedSchemes } from '../context/SavedSchemesContext';
+import { useToast } from '../context/ToastContext';
 
 export function SchemeDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const activeSchemeId = id || 'saur-krushi-vahini';
+
+  const [scheme, setScheme] = useState<Scheme>(() => {
+    return SchemeService.getById(activeSchemeId) || SchemeService.getById('saur-krushi-vahini')!;
+  });
+  const [_loading, setLoading] = useState(false);
+  const [_apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    SchemeService.fetchByIdAsync(activeSchemeId)
+      .then((data) => {
+        if (mounted && data) {
+          setScheme(data);
+          setApiError(null);
+        }
+      })
+      .catch((err) => {
+        if (mounted) setApiError(err.message);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeSchemeId]);
+  
+  const { isSaved, toggleSave } = useSavedSchemes();
+  const { showToast } = useToast();
 
   const [currentLang, setCurrentLang] = useState<'en' | 'mr' | 'hi'>('en');
   const [fontSizeOffset, setFontSizeOffset] = useState<number>(0);
-  const [isSaved, setIsSaved] = useState<boolean>(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const [showShareToast, setShowShareToast] = useState<boolean>(false);
+
+  const schemeIsSaved = isSaved(scheme.id);
 
   // Modals
   const [isEligibilityOpen, setIsEligibilityOpen] = useState(false);
@@ -68,13 +107,14 @@ export function SchemeDetailPage() {
       window.speechSynthesis.speak(utterance);
       setIsPlayingAudio(true);
     } else {
-      alert("Speech synthesis is not supported on this browser.");
+      showToast("Speech synthesis is not supported on this browser.", 'warning');
     }
   };
 
   const handleShare = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
+      showToast('Scheme link copied to clipboard!', 'info');
       setShowShareToast(true);
       setTimeout(() => setShowShareToast(false), 3000);
     }
@@ -264,15 +304,15 @@ export function SchemeDetailPage() {
               {/* Utility actions */}
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setIsSaved(!isSaved)}
+                  onClick={() => toggleSave(scheme.id)}
                   className={`inline-flex items-center space-x-1.5 px-3.5 py-2.5 rounded-lg border text-xs font-semibold transition-all ${
-                    isSaved
+                    schemeIsSaved
                       ? 'bg-amber-50 border-amber-300 text-amber-800'
                       : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-amber-500 text-amber-500' : 'text-slate-500'}`} />
-                  <span>{isSaved ? 'Saved' : 'Save Scheme'}</span>
+                  <Bookmark className={`w-4 h-4 ${schemeIsSaved ? 'fill-amber-500 text-amber-500' : 'text-slate-500'}`} />
+                  <span>{schemeIsSaved ? 'Saved' : 'Save Scheme'}</span>
                 </button>
 
                 <button
@@ -587,6 +627,10 @@ export function SchemeDetailPage() {
                       <ArrowRight className="w-4 h-4" />
                     </a>
                   </div>
+
+                  <p className="mt-2 text-[10px] text-slate-500 italic">
+                    * Illustrative calculation based on MSKVY 2.0 tender benchmarks. Final payable share and technical feasibility depend on Mahavitaran site survey.
+                  </p>
                 </div>
               </div>
 
@@ -655,6 +699,40 @@ export function SchemeDetailPage() {
                 </div>
               </div>
 
+              {/* Section 6: Official Application Steps */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-7">
+                <div className="flex items-center space-x-2.5 mb-5 pb-3 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold">
+                    <ListOrdered className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">
+                      Official Application Steps (अर्ज प्रक्रिया पायऱ्या)
+                    </h2>
+                    <p className="text-xs text-slate-500">Step-by-step procedure to submit your application on official portal</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {(scheme.applicationSteps && scheme.applicationSteps.length > 0 ? scheme.applicationSteps : [
+                    'Step 1: Check landholding (7/12 & 8-A) and ensure assured water source on plot.',
+                    'Step 2: Verify zero existing grid agricultural power connection.',
+                    'Step 3: Register and apply online via designated official portal.',
+                    'Step 4: Designated field officer conducts physical site survey & GPS geo-tagging.',
+                    'Step 5: Pay beneficiary quota share and authorized vendor delivers installation.'
+                  ]).map((step: string, idx: number) => (
+                    <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start space-x-3 text-xs sm:text-sm">
+                      <span className="w-6 h-6 rounded-full bg-blue-100 text-[#1850b5] font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <div className="text-slate-800 font-medium leading-relaxed">
+                        {step}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
 
             {/* Right Sidebar Column (4 cols) */}
@@ -672,12 +750,17 @@ export function SchemeDetailPage() {
                 <div className="space-y-3 text-xs sm:text-sm">
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
                     <span className="text-slate-500">Scope:</span>
-                    <span className="font-semibold text-slate-800 text-right">Maharashtra State + Central (PM-KUSUM)</span>
+                    <span className="font-semibold text-slate-800 text-right">{scheme.level} ({scheme.sector})</span>
                   </div>
 
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
                     <span className="text-slate-500">Implementing Agency:</span>
-                    <span className="font-semibold text-slate-800 text-right">Mahavitaran (MSEDCL)</span>
+                    <span className="font-semibold text-slate-800 text-right">{scheme.departmentShort || 'Govt of Maharashtra'}</span>
+                  </div>
+
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-slate-500">Status & Record:</span>
+                    <span className="font-semibold text-blue-700 text-right capitalize">{scheme.verificationStatus || 'Demonstration'} ({scheme.lastVerifiedDate || scheme.lastUpdated})</span>
                   </div>
 
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
@@ -731,17 +814,32 @@ export function SchemeDetailPage() {
 
                 <div className="space-y-2">
                   <a
-                    href="https://www.mahadiscom.in/solar_MSKVY/index_mr.html"
+                    href={scheme.officialUrl || 'https://mahadbt.maharashtra.gov.in'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 text-xs font-semibold text-slate-800 transition-colors"
                   >
                     <span className="flex items-center">
                       <ExternalLink className="w-4 h-4 text-blue-600 mr-2" />
-                      Mahavitaran Solar Portal
+                      Official Scheme Portal
                     </span>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </a>
+
+                  {scheme.sourceUrl && scheme.sourceUrl !== scheme.officialUrl && (
+                    <a
+                      href={scheme.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 text-xs font-semibold text-slate-800 transition-colors"
+                    >
+                      <span className="flex items-center">
+                        <ExternalLink className="w-4 h-4 text-blue-600 mr-2" />
+                        Official Source Guidelines
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </a>
+                  )}
 
                   <a
                     href="https://mahadbt.maharashtra.gov.in"
@@ -751,7 +849,7 @@ export function SchemeDetailPage() {
                   >
                     <span className="flex items-center">
                       <ExternalLink className="w-4 h-4 text-blue-600 mr-2" />
-                      MahaDBT Farmer Portal
+                      MahaDBT Citizen Portal
                     </span>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </a>

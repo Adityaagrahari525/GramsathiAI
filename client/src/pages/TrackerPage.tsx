@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -9,28 +8,40 @@ import {
   ExternalLink,
   Volume2,
   Building2,
-  PhoneCall,
-  User,
   ArrowRight,
   Share2,
   Printer,
   ChevronDown,
   ChevronUp,
   AlertTriangle,
-  Lock,
   RefreshCw,
   HelpCircle,
   Check
 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
+import { Navbar } from '../components/Navbar';
+import { useJourneyTracker } from '../context/JourneyTrackerContext';
+import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 export function TrackerPage() {
-  const [currentLang, setCurrentLang] = useState<'en' | 'mr' | 'hi'>('en');
-  const [fontSizeOffset, setFontSizeOffset] = useState<number>(0);
+  const {
+    journey,
+    hasUploaded8A,
+    isSyncingDigiLocker,
+    syncDigiLocker,
+    upload8A,
+    downloadDossier,
+    setStage,
+    toggleStageCompletion
+  } = useJourneyTracker();
+  const { showToast } = useToast();
+  const { t } = useLanguage();
+  const { fontSizeOffset } = useAccessibility();
+
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isStage1Open, setIsStage1Open] = useState(false);
-  const [isDigiLockerSyncing, setIsDigiLockerSyncing] = useState(false);
-  const [hasUploaded8A, setHasUploaded8A] = useState(false);
   const [activeDocModal, setActiveDocModal] = useState<string | null>(null);
 
   const handleAudioGuide = () => {
@@ -54,13 +65,12 @@ export function TrackerPage() {
     }
   };
 
-  const handleDigiLockerSync = () => {
-    setIsDigiLockerSyncing(true);
-    setTimeout(() => {
-      setIsDigiLockerSyncing(false);
-      setHasUploaded8A(true);
-      alert('DigiLocker Sync Complete! 8-A Land Extract (Form 8-A) verified via Aadhaar e-KYC.');
-    }, 1800);
+  const handleDigiLockerSync = async () => {
+    await syncDigiLocker();
+  };
+
+  const handleUploadFile = () => {
+    upload8A();
   };
 
   return (
@@ -69,87 +79,29 @@ export function TrackerPage() {
       style={{ fontSize: `${100 + fontSizeOffset * 6}%` }}
     >
       {/* 1. Official Government Top Accessibility Bar */}
-      <TopBar
-        currentLang={currentLang}
-        onLangChange={setCurrentLang}
-        fontSize={fontSizeOffset}
-        onFontSizeChange={(delta) => setFontSizeOffset((prev) => Math.max(-2, Math.min(3, prev + delta)))}
-      />
+      <TopBar />
 
       {/* 2. Main Civic Navigation Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-xl bg-[#0f3675] flex items-center justify-center text-white font-black text-xl shadow-md">
-                GS
-              </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-black tracking-tight text-[#0f3675]">
-                  GramSathi AI
-                </div>
-                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                  ग्रामसाथी AI नागरिक पोर्टल
-                </div>
-              </div>
-            </Link>
-
-            {/* Nav links */}
-            <nav className="hidden lg:flex items-center space-x-1 text-sm font-semibold text-slate-700">
-              <Link to="/schemes" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                Explore Schemes
-              </Link>
-              <Link to="/saved" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                Saved Schemes
-              </Link>
-              <Link to="/assistant" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                AI Citizen Assistant
-              </Link>
-              <Link
-                to="/tracker"
-                className="px-3.5 py-2 text-white bg-[#1850b5] rounded-lg font-bold shadow-xs transition-colors"
-              >
-                Scheme Journey & Tracker
-              </Link>
-              <a
-                href="https://grievances.maharashtra.gov.in"
-                target="_blank"
-                rel="noreferrer"
-                className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors"
-              >
-                Grievance / Helpdesk
-              </a>
-            </nav>
-
-            {/* Right: Phone & Profile */}
-            <div className="flex items-center space-x-3">
-              <div className="hidden sm:flex items-center space-x-2 bg-blue-50/80 px-3.5 py-2 rounded-xl border border-blue-200 text-xs font-bold text-blue-950">
-                <PhoneCall className="w-4 h-4 text-blue-700" />
-                <span>1800-123-GRAM</span>
-              </div>
-
-              <Link
-                to="/signin"
-                className="flex items-center space-x-2 bg-[#1850b5] hover:bg-[#0f3675] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all active:scale-95"
-              >
-                <User className="w-4 h-4" />
-                <span>Citizen Profile</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* 3. Breadcrumb & Sync Status */}
       <section className="bg-white border-b border-slate-200 py-2.5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 gap-2">
           <div>
-            GramSathi AI / Citizen Benefits & Welfare / <strong className="text-slate-800">Scheme Journey & Application Workflow</strong>
+            GramSathi AI / {t('Direct Benefits & Welfare')} / <strong className="text-slate-800">{t('Scheme Journey & Tracker')}</strong>
           </div>
-          <div className="flex items-center space-x-1.5 text-blue-900 font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Workflow Sync: MahaDBT & PM-Kisan Live</span>
+          <div className="flex items-center space-x-2 text-xs">
+            {journey.persistenceMode === 'cloud_mongodb' ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>MongoDB Atlas Connected • Auto-Saved</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-300 font-bold">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                <span>Local Demonstration Mode (Offline Storage)</span>
+              </span>
+            )}
           </div>
         </div>
       </section>
@@ -208,20 +160,26 @@ export function TrackerPage() {
               </div>
               <div className="w-px h-8 bg-slate-200"></div>
               <div className="text-center px-2">
-                <div className="text-[10px] text-slate-500 font-bold uppercase">Local Progress</div>
-                <div className="text-lg font-black text-emerald-700">
-                  {hasUploaded8A ? '100% Ready' : '90% Complete'}
+                <div className="text-[10px] text-slate-500 font-bold uppercase">Persistence</div>
+                <div className="text-xs font-black text-slate-800">
+                  {journey.persistenceMode === 'cloud_mongodb' ? (
+                    <span className="text-emerald-700">MongoDB Atlas</span>
+                  ) : (
+                    <span className="text-amber-700">Local / Demo</span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Scheme Journey Map (Horizontal 5-Stage Stepper) */}
+        {/* Scheme Journey Map (Horizontal 5-Stage Stepper: Eligibility → Documents → Application → Verification → Benefit) */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-7">
           <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
             <div className="flex items-center space-x-2">
-              <span className="text-base font-bold text-slate-900">Scheme Journey Map</span>
+              <span className="text-base font-bold text-slate-900">
+                Scheme Journey Map: Eligibility → Documents → Application → Verification → Benefit
+              </span>
             </div>
             <span className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
               {hasUploaded8A ? 'Stage 2 Complete • Ready for Stage 3' : 'Currently at Stage 2'}
@@ -230,122 +188,114 @@ export function TrackerPage() {
 
           {/* Stepper Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {/* Stage 1: Eligibility Confirmed */}
-            <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/50 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
-                    <Check className="w-4 h-4" />
+            {[
+              {
+                num: 1,
+                title: 'Eligibility',
+                desc: 'Deterministic Assessment: 4 of 4 statutory criteria verified (TRUE).',
+                meta: 'Criteria Passed • Rule Verified'
+              },
+              {
+                num: 2,
+                title: 'Documents',
+                desc: hasUploaded8A
+                  ? 'Document Dossier: 6 of 6 verified documents ready.'
+                  : 'Document Dossier: 5 of 6 verified, 1 pending action.',
+                meta: hasUploaded8A ? 'Verified Gazette Checklist • 100%' : '8-A Extract Pending • 90%'
+              },
+              {
+                num: 3,
+                title: 'Application',
+                desc: 'Portal Submission: Submit formal application dossier on Mahavitaran portal.',
+                meta: journey.isStage3Unlocked ? 'Ready to Apply' : 'Unlocks after document dossier'
+              },
+              {
+                num: 4,
+                title: 'Verification',
+                desc: 'Field Survey & Verification: Inspection by Circle Talathi & MSEDCL engineer.',
+                meta: 'Well Geo-tagging & Technical NOC'
+              },
+              {
+                num: 5,
+                title: 'Benefit',
+                desc: 'Subsidy & Benefit Release: 90% capital subsidy sanction and pump installation.',
+                meta: 'Direct DBT / Vendor Subsidy Disbursement'
+              }
+            ].map((stage) => {
+              const isCompleted = journey.completedStages?.includes(stage.num);
+              const isActive = journey.currentStage === stage.num;
+              return (
+                <div
+                  key={stage.num}
+                  onClick={() => setStage(stage.num)}
+                  className={`p-4 rounded-xl cursor-pointer transition-all flex flex-col justify-between ${
+                    isActive
+                      ? 'border-2 border-blue-600 bg-blue-50/60 shadow-xs'
+                      : isCompleted
+                      ? 'border border-emerald-300 bg-emerald-50/50'
+                      : 'border border-slate-200 bg-slate-50/60 opacity-80 hover:opacity-100 hover:border-slate-300'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-xs ${
+                          isCompleted
+                            ? 'bg-emerald-600 text-white'
+                            : isActive
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {isCompleted ? <Check className="w-4 h-4" /> : stage.num}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            isCompleted
+                              ? 'text-emerald-800 bg-emerald-100'
+                              : isActive
+                              ? 'text-blue-900 bg-blue-100'
+                              : 'text-slate-500 bg-slate-200'
+                          }`}
+                        >
+                          {isCompleted ? 'Completed' : isActive ? 'Active Stage' : `Stage ${stage.num}`}
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      className={`text-xs font-bold uppercase ${
+                        isActive ? 'text-blue-700' : isCompleted ? 'text-emerald-700' : 'text-slate-400'
+                      }`}
+                    >
+                      Stage {stage.num}
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 mt-0.5">{stage.title}</h4>
+                    <p className="text-[11px] text-slate-600 mt-1 leading-snug">{stage.desc}</p>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
-                    Completed
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-slate-500 uppercase">Stage 1</div>
-                <h4 className="text-sm font-bold text-slate-900 mt-0.5">Eligibility Confirmed</h4>
-                <p className="text-[11px] text-slate-600 mt-1 leading-snug">
-                  Eligibility Assessment: 4 of 4 criteria verified.
-                </p>
-              </div>
-              <div className="mt-3 text-[10px] text-emerald-800 font-semibold">
-                Verification Nov 10, 2024
-              </div>
-            </div>
-
-            {/* Stage 2: Required Documents (Active) */}
-            <div className="p-4 rounded-xl border-2 border-blue-600 bg-blue-50/60 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
-                    2
+                  <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                    <span
+                      className={`font-semibold ${
+                        isCompleted ? 'text-emerald-800' : isActive ? 'text-blue-800' : 'text-slate-500'
+                      }`}
+                    >
+                      {stage.meta}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleStageCompletion(stage.num);
+                      }}
+                      className="text-[10px] font-bold text-slate-500 hover:text-slate-900 underline ml-1"
+                      title={isCompleted ? 'Mark incomplete' : 'Mark completed'}
+                    >
+                      {isCompleted ? 'Done ✓' : 'Mark'}
+                    </button>
                   </div>
-                  <span className="text-[10px] font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded">
-                    Active Stage
-                  </span>
                 </div>
-                <div className="text-xs font-bold text-blue-700 uppercase">Stage 2</div>
-                <h4 className="text-sm font-bold text-slate-900 mt-0.5">Required Documents</h4>
-                <p className="text-[11px] text-slate-600 mt-1 leading-snug">
-                  Required Documents: {hasUploaded8A ? '6 of 6 ready, complete!' : '5 of 6 ready, 1 pending action.'}
-                </p>
-              </div>
-              <div className="mt-3">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded inline-block ${
-                  hasUploaded8A
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-amber-100 text-amber-900'
-                }`}>
-                  {hasUploaded8A ? 'All Documents Verified • 100%' : '8-A Extract Pending • 90%'}
-                </span>
-              </div>
-            </div>
-
-            {/* Stage 3: Official Application */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 opacity-80 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">
-                    3
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded">
-                    Next Stage
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-slate-400 uppercase">Stage 3</div>
-                <h4 className="text-sm font-bold text-slate-700 mt-0.5">Official Application</h4>
-                <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                  Application: Submit formal application on Mahavitaran portal.
-                </p>
-              </div>
-              <div className="mt-3 text-[10px] text-slate-500 flex items-center space-x-1">
-                <Lock className="w-3 h-3 text-slate-400" />
-                <span>Unlocks after document completion</span>
-              </div>
-            </div>
-
-            {/* Stage 4: Field Inspection */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 opacity-80 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">
-                    4
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded">
-                    Field Verification
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-slate-400 uppercase">Stage 4</div>
-                <h4 className="text-sm font-bold text-slate-700 mt-0.5">Field Inspection</h4>
-                <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                  Field Survey: Physical inspection by Talathi, Agri Officer & Mahavitaran.
-                </p>
-              </div>
-              <div className="mt-3 text-[10px] text-slate-500">
-                Well Geo-tagging & NOC
-              </div>
-            </div>
-
-            {/* Stage 5: Commissioning & Benefit */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 opacity-80 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">
-                    5
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded">
-                    Final Benefit
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-slate-400 uppercase">Stage 5</div>
-                <h4 className="text-sm font-bold text-slate-700 mt-0.5">Commissioning & Benefit</h4>
-                <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                  Benefit & Commissioning: 90% subsidy sanction & solar pump installation.
-                </p>
-              </div>
-              <div className="mt-3 text-[10px] text-slate-500">
-                Solar Pump Commissioning Report
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           {/* Bottom helper action */}
@@ -398,7 +348,7 @@ export function TrackerPage() {
                   </button>
 
                   <button
-                    onClick={() => alert('Dossier preview will open consolidated verification certificate.')}
+                    onClick={() => setActiveDocModal('Digital Application Dossier (Consolidated PDFs)')}
                     className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-xs font-bold transition-colors"
                   >
                     <FileText className="w-3.5 h-3.5" />
@@ -561,27 +511,24 @@ export function TrackerPage() {
                   {!hasUploaded8A && (
                     <div className="mt-3 pt-3 border-t border-blue-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="text-xs text-slate-600">
-                        <strong className="text-slate-900">Option 1: Aaple Sarkar DigiLocker Sync</strong>
-                        <div className="text-[11px] text-slate-500">Instant 1-minute download via Aadhaar.</div>
+                        <strong className="text-slate-900">Option 1: Aaple Sarkar DigiLocker Sync (Simulated)</strong>
+                        <div className="text-[11px] text-slate-500">Simulate 1-minute download via Aadhaar (Demonstration Mode).</div>
                       </div>
 
                       <div className="flex items-center space-x-2">
                         <button
                           type="button"
                           onClick={handleDigiLockerSync}
-                          disabled={isDigiLockerSyncing}
+                          disabled={isSyncingDigiLocker}
                           className="px-3.5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center space-x-1.5"
                         >
-                          <RefreshCw className={`w-3.5 h-3.5 ${isDigiLockerSyncing ? 'animate-spin' : ''}`} />
-                          <span>{isDigiLockerSyncing ? 'Syncing...' : 'Fetch from DigiLocker'}</span>
+                          <RefreshCw className={`w-3.5 h-3.5 ${isSyncingDigiLocker ? 'animate-spin' : ''}`} />
+                          <span>{isSyncingDigiLocker ? 'Syncing...' : 'Fetch from DigiLocker (Demo)'}</span>
                         </button>
 
                         <button
                           type="button"
-                          onClick={() => {
-                            setHasUploaded8A(true);
-                            alert('8-A Land Extract file uploaded successfully!');
-                          }}
+                          onClick={handleUploadFile}
                           className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition-colors shadow-2xs flex items-center space-x-1"
                         >
                           <Upload className="w-3.5 h-3.5" />
@@ -697,10 +644,7 @@ export function TrackerPage() {
               <div className="mt-5 space-y-2.5">
                 {!hasUploaded8A ? (
                   <button
-                    onClick={() => {
-                      setHasUploaded8A(true);
-                      alert('8-A Land Extract file uploaded successfully!');
-                    }}
+                    onClick={handleUploadFile}
                     className="w-full flex items-center justify-center space-x-2 bg-[#1850b5] hover:bg-[#0f3675] text-white py-3 rounded-xl text-xs sm:text-sm font-bold shadow transition-all hover:shadow-md"
                   >
                     <Upload className="w-4 h-4" />
@@ -719,7 +663,7 @@ export function TrackerPage() {
                 )}
 
                 <button
-                  onClick={() => alert('Consolidated Dossier PDF download initiated.')}
+                  onClick={downloadDossier}
                   className="w-full flex items-center justify-center space-x-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 py-2.5 rounded-xl text-xs font-semibold transition-colors"
                 >
                   <Download className="w-4 h-4 text-slate-500" />
@@ -855,7 +799,7 @@ export function TrackerPage() {
               </button>
               <button
                 onClick={() => {
-                  alert('Document download started.');
+                  showToast(`Downloading simulated copy: ${activeDocModal || 'Document'}.pdf`, 'info');
                   setActiveDocModal(null);
                 }}
                 className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs"

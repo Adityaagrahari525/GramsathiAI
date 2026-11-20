@@ -24,10 +24,17 @@ import { NeedDiscoveryPage } from './pages/NeedDiscoveryPage';
 import { BenefitSynergyPage } from './pages/BenefitSynergyPage';
 import { FraudCheckerPage } from './pages/FraudCheckerPage';
 
+import { ToastProvider } from './context/ToastContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { AccessibilityProvider } from './context/AccessibilityContext';
+import { CitizenProfileProvider } from './context/CitizenProfileContext';
+import { SavedSchemesProvider } from './context/SavedSchemesContext';
+import { JourneyTrackerProvider } from './context/JourneyTrackerContext';
+
 // ─── Landing Page (Home) ───────────────────────────────────────────────────────
 function HomePage() {
   const navigate = useNavigate();
-  const [currentLang, setCurrentLang] = useState<'en' | 'mr' | 'hi'>('en');
+  const { language, setLanguage } = useLanguage();
   const [fontSizeOffset, setFontSizeOffset] = useState<number>(0);
 
   // Modals state
@@ -72,23 +79,23 @@ function HomePage() {
     >
       {/* 1. Citizen Accessibility Bar */}
       <TopBar
-        currentLang={currentLang}
-        onLangChange={setCurrentLang}
+        currentLang={language}
+        onLangChange={setLanguage}
         fontSize={fontSizeOffset}
         onFontSizeChange={handleFontSizeChange}
       />
 
       {/* 2. Main Civic Navigation Header with Horizontal Sliding Bar & Sidebar */}
-      <HomeNavbar currentLang={currentLang} />
+      <HomeNavbar currentLang={language} />
 
       {/* 3. Official Status & Gazette Sync Bar */}
-      <LiveBanner currentLang={currentLang} />
+      <LiveBanner currentLang={language} />
 
       {/* Main Page Body */}
       <main className="flex-1">
         {/* 4. Hero Section with Search & Popular Pills */}
         <HeroSection
-          currentLang={currentLang}
+          currentLang={language}
           onSearch={handleSearch}
           onPopularSelect={handlePopularSelect}
           onVoiceTrigger={handleVoiceTrigger}
@@ -114,19 +121,19 @@ function HomePage() {
       </main>
 
       {/* 8. Official Civic Footer */}
-      <Footer currentLang={currentLang} />
+      <Footer currentLang={language} />
 
       {/* Modals & Overlays */}
       <AskAssistantModal
         isOpen={isAssistantOpen}
         onClose={() => setIsAssistantOpen(false)}
-        currentLang={currentLang}
+        currentLang={language}
       />
 
       <EligibilityModal
         isOpen={isEligibilityOpen}
         onClose={() => setIsEligibilityOpen(false)}
-        currentLang={currentLang}
+        currentLang={language}
       />
     </div>
   );
@@ -135,31 +142,43 @@ function HomePage() {
 // ─── App Router ───────────────────────────────────────────────────────────────
 export function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/schemes" element={<SchemesPage />} />
-      <Route path="/scheme/:id" element={<SchemeDetailPage />} />
-      <Route path="/schemes/:id" element={<SchemeDetailPage />} />
-      <Route path="/eligibility" element={<EligibilityCheckerPage />} />
-      <Route path="/eligibility/checker" element={<EligibilityCheckerPage />} />
-      <Route path="/eligibility/results" element={<EligibilityResultsPage />} />
-      <Route path="/signin" element={<SignInPage />} />
-      <Route path="/login" element={<SignInPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/assistant" element={<AssistantPage />} />
-      <Route path="/tracker" element={<TrackerPage />} />
-      <Route path="/journey" element={<TrackerPage />} />
-      <Route path="/saved" element={<SavedSchemesPage />} />
-      <Route path="/saved-schemes" element={<SavedSchemesPage />} />
-      <Route path="/profile" element={<CitizenProfilePage />} />
-      <Route path="/citizen/profile" element={<CitizenProfilePage />} />
-      <Route path="/needs" element={<NeedDiscoveryPage />} />
-      <Route path="/find-by-need" element={<NeedDiscoveryPage />} />
-      <Route path="/synergy" element={<BenefitSynergyPage />} />
-      <Route path="/combinations" element={<BenefitSynergyPage />} />
-      <Route path="/fraud-check" element={<FraudCheckerPage />} />
-      <Route path="/verify-message" element={<FraudCheckerPage />} />
-    </Routes>
+    <ToastProvider>
+      <AccessibilityProvider>
+        <LanguageProvider>
+          <CitizenProfileProvider>
+            <SavedSchemesProvider>
+              <JourneyTrackerProvider>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/schemes" element={<SchemesPage />} />
+                  <Route path="/scheme/:id" element={<SchemeDetailPage />} />
+                  <Route path="/schemes/:id" element={<SchemeDetailPage />} />
+                  <Route path="/eligibility" element={<EligibilityCheckerPage />} />
+                  <Route path="/eligibility/checker" element={<EligibilityCheckerPage />} />
+                  <Route path="/eligibility/results" element={<EligibilityResultsPage />} />
+                  <Route path="/signin" element={<SignInPage />} />
+                  <Route path="/login" element={<SignInPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/assistant" element={<AssistantPage />} />
+                  <Route path="/tracker" element={<TrackerPage />} />
+                  <Route path="/journey" element={<TrackerPage />} />
+                  <Route path="/saved" element={<SavedSchemesPage />} />
+                  <Route path="/saved-schemes" element={<SavedSchemesPage />} />
+                  <Route path="/profile" element={<CitizenProfilePage />} />
+                  <Route path="/citizen/profile" element={<CitizenProfilePage />} />
+                  <Route path="/needs" element={<NeedDiscoveryPage />} />
+                  <Route path="/find-by-need" element={<NeedDiscoveryPage />} />
+                  <Route path="/synergy" element={<BenefitSynergyPage />} />
+                  <Route path="/combinations" element={<BenefitSynergyPage />} />
+                  <Route path="/fraud-check" element={<FraudCheckerPage />} />
+                  <Route path="/verify-message" element={<FraudCheckerPage />} />
+                </Routes>
+              </JourneyTrackerProvider>
+            </SavedSchemesProvider>
+          </CitizenProfileProvider>
+        </LanguageProvider>
+      </AccessibilityProvider>
+    </ToastProvider>
   );
 }
 

@@ -18,6 +18,10 @@ import {
 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { EligibilityModal } from '../components/EligibilityModal';
+import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
+import { apiClient } from '../services/apiClient';
+import { BrowserVoiceService } from '../services/voiceService';
 
 interface ChatMessage {
   id: string;
@@ -27,6 +31,7 @@ interface ChatMessage {
   title?: string;
   badge?: string;
   content: string;
+  sources?: string[];
   categories?: Array<{ label: string; query: string }>;
   schemeCard?: {
     authority: string;
@@ -41,13 +46,42 @@ interface ChatMessage {
 
 export function AssistantPage() {
   const navigate = useNavigate();
-  const [currentLang, setCurrentLang] = useState<'en' | 'mr' | 'hi'>('mr');
+  const { language: currentLang, setLanguage: setCurrentLang } = useLanguage();
   const [fontSizeOffset, setFontSizeOffset] = useState<number>(0);
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isEligibilityOpen, setIsEligibilityOpen] = useState(false);
+  const [isLoadingReply, setIsLoadingReply] = useState(false);
+  const [assistantMeta, setAssistantMeta] = useState<{
+    isConfigured: boolean;
+    mode: string;
+    statusNotice: string;
+  }>({
+    isConfigured: false,
+    mode: 'deterministic_fallback',
+    statusNotice: 'Checking AI status...',
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    apiClient.getAssistantStatus().then((res) => {
+      if (res.success && res.data) {
+        setAssistantMeta({
+          isConfigured: res.data.isConfigured,
+          mode: res.data.mode,
+          statusNotice: res.data.statusNotice,
+        });
+      }
+    }).catch(() => {
+      setAssistantMeta({
+        isConfigured: false,
+        mode: 'deterministic_fallback',
+        statusNotice: 'Running in reliable deterministic fallback mode.',
+      });
+    });
+  }, []);
 
   const initialMessages: ChatMessage[] = [
     {
@@ -101,7 +135,7 @@ export function AssistantPage() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const text = textToSend || inputText;
     if (!text.trim()) return;
 
@@ -117,8 +151,48 @@ export function AssistantPage() {
 
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
+    setIsLoadingReply(true);
 
-    // Simulate grounded civic assistant response
+    try {
+      const res = await apiClient.assistantChat({
+        message: text,
+        language: currentLang,
+      });
+
+      if (res.success && res.data) {
+        const d = res.data;
+        const matched = d.matchedSchemes && d.matchedSchemes[0];
+        const isGemini = d.source === 'gemini_grounded';
+
+        const replyMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          sender: 'assistant',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          title: isGemini ? 'GramSathi AI (Gemini 2.5 Grounded)' : 'GramSathi Guidance Desk (Verified Gazette)',
+          badge: isGemini ? '✓ Gemini Grounded' : '✓ Verified Gazette',
+          content: d.reply,
+          sources: d.sources,
+          schemeCard: matched
+            ? {
+                authority: matched.department || 'Government of Maharashtra',
+                status: 'Verified Gazette Record',
+                title: matched.nameMr || matched.name,
+                subsidy: matched.benefitAmount,
+                farmerShare: 'Direct Application',
+                pump: 'Welfare Support',
+                schemeUrl: `/schemes/${matched.id}`,
+              }
+            : undefined,
+        };
+        setMessages((prev) => [...prev, replyMsg]);
+        setIsLoadingReply(false);
+        return;
+      }
+    } catch (apiErr) {
+      console.warn('[AssistantPage] Assistant API query error, using local fallback:', apiErr);
+    }
+
+    // Local deterministic fallback
     setTimeout(() => {
       const lower = text.toLowerCase();
       let reply: ChatMessage;
@@ -132,6 +206,7 @@ export function AssistantPage() {
           badge: '✓ Active Scheme',
           content:
             'Chief Minister Majhi Ladki Bahin Scheme provides financial assistance of ₹1,500/month (₹18,000/year) to women aged 21 to 65 years with annual family income under ₹2.5 Lakh. Direct transfer to Aadhaar-linked bank account.',
+          sources: ['https://ladkibahin.maharashtra.gov.in'],
         };
       } else if (lower.includes('7/12') || lower.includes('aadhaar') || text.includes('७/१२')) {
         reply = {
@@ -142,16 +217,7 @@ export function AssistantPage() {
           badge: 'Official Procedure',
           content:
             'To link your 7/12 extract with Aadhaar: Visit the Mahabhumi portal (mahabhumi.gov.in) or your local Talathi / Aaple Sarkar Kendra. Carry your Aadhaar card and verified Khatedar number. Linking enables automatic DBT eligibility matching.',
-        };
-      } else if (lower.includes('tractor') || text.includes('ट्रॅक्टर')) {
-        reply = {
-          id: (Date.now() + 1).toString(),
-          sender: 'assistant',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          title: 'MahaDBT Agriculture Mechanization',
-          badge: 'Subsidy: Up to 50%',
-          content:
-            'Under the Krushi Yantrikikaran Scheme on MahaDBT, farmers receive 40% to 50% subsidy (up to ₹1,25,000) on tractor purchases and farm implements. Online application requires 7/12 extract, quotation, and caste certificate (if applicable).',
+          sources: ['https://mahabhumi.gov.in'],
         };
       } else {
         reply = {
@@ -162,55 +228,81 @@ export function AssistantPage() {
           badge: 'Gazette Verified',
           content:
             `We have verified your query regarding "${text}". In Maharashtra, rural citizens can verify benefits, upload required documents, or access guidance through the MahaDBT portal or your nearest Gram Panchayat CSC Seva Kendra with zero middleman charges.`,
+          sources: ['https://mahadbt.maharashtra.gov.in'],
         };
       }
 
       setMessages((prev) => [...prev, reply]);
-    }, 700);
+      setIsLoadingReply(false);
+    }, 500);
   };
 
   const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert('Speech recognition is not supported on this browser.');
+    if (!BrowserVoiceService.isSpeechRecognitionSupported()) {
+      showToast(
+        currentLang === 'mr'
+          ? 'या ब्राऊझरवर थेट आवाज ओळख उपलब्ध नाही (Google Chrome किंवा Edge वापरा). टाइप करून विचारा.'
+          : currentLang === 'hi'
+          ? 'इस ब्राउज़र पर वॉयस पहचान उपलब्ध नहीं है (Google Chrome या Edge का उपयोग करें)। लिखकर पूछें।'
+          : 'Browser Speech Recognition is not supported on this browser (use Google Chrome or Microsoft Edge). You can type your query.',
+        'warning'
+      );
       return;
     }
 
-    try {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = currentLang === 'mr' ? 'mr-IN' : currentLang === 'hi' ? 'hi-IN' : 'en-IN';
-      recognition.interimResults = false;
-
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-      recognition.onerror = () => setIsListening(false);
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
+    const session = BrowserVoiceService.startListening({
+      language: currentLang,
+      onStart: () => {
+        setIsListening(true);
+        showToast(
+          currentLang === 'mr'
+            ? 'माइक सुरू झाला आहे. स्पष्टपणे बोला...'
+            : currentLang === 'hi'
+            ? 'माइक शुरू हो गया है। स्पष्ट रूप से बोलें...'
+            : 'Listening... Please speak your query clearly.',
+          'info'
+        );
+      },
+      onResult: (transcript) => {
         setInputText(transcript);
         handleSend(transcript);
-      };
+      },
+      onError: (err) => {
+        setIsListening(false);
+        showToast(err, 'warning');
+      },
+      onEnd: () => {
+        setIsListening(false);
+      },
+    });
 
-      recognition.start();
-    } catch {
+    if (!session) {
       setIsListening(false);
     }
   };
 
   const handleListenAudio = (text: string) => {
     if (isPlayingAudio) {
-      window.speechSynthesis?.cancel();
+      BrowserVoiceService.stopSpeaking();
       setIsPlayingAudio(false);
       return;
     }
 
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = currentLang === 'mr' ? 'mr-IN' : 'en-IN';
-      utterance.onend = () => setIsPlayingAudio(false);
-      utterance.onerror = () => setIsPlayingAudio(false);
-      window.speechSynthesis.speak(utterance);
+    if (!BrowserVoiceService.isSpeechSynthesisSupported()) {
+      showToast(
+        currentLang === 'mr'
+          ? 'या ब्राऊझरवर आवाज वाचन (Text-to-Speech) उपलब्ध नाही.'
+          : 'Text-to-speech audio narration is not supported on this browser.',
+        'warning'
+      );
+      return;
+    }
+
+    const spoken = BrowserVoiceService.speak(text, currentLang, () => {
+      setIsPlayingAudio(false);
+    });
+
+    if (spoken) {
       setIsPlayingAudio(true);
     }
   };
@@ -319,15 +411,29 @@ export function AssistantPage() {
             {/* Session Status Bar */}
             <div className="px-5 py-3.5 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex items-center space-x-2 text-slate-700 font-semibold">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className={`w-2.5 h-2.5 rounded-full ${assistantMeta.isConfigured ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`}></span>
                 <span>Active Session: Citizen Query Desk</span>
                 <span className="text-slate-400 hidden sm:inline">•</span>
                 <span className="text-slate-500 font-normal hidden sm:inline">
-                  Validated against MahaDBT & Official Gazette Resolutions
+                  {assistantMeta.isConfigured ? (
+                    <strong className="text-emerald-700 font-bold">Gemini 2.5 Flash Grounded Mode</strong>
+                  ) : (
+                    <strong className="text-blue-700 font-bold">Verified Gazette Rule Engine (Deterministic)</strong>
+                  )}
                 </span>
               </div>
 
               <div className="flex items-center space-x-3 text-slate-600 font-medium">
+                {assistantMeta.isConfigured ? (
+                  <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                    Gemini Key Active
+                  </span>
+                ) : (
+                  <span className="bg-amber-50 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                    Standard Civic Mode
+                  </span>
+                )}
+                <span className="text-slate-300">|</span>
                 <button
                   onClick={handleResetChat}
                   className="hover:text-blue-700 flex items-center space-x-1 cursor-pointer transition-colors"
@@ -488,10 +594,37 @@ export function AssistantPage() {
                           </div>
                         </div>
                       )}
+
+                      {/* Sources Citation Pill */}
+                      {msg.sources && msg.sources.length > 0 && (
+                        <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center gap-1.5 text-[10px]">
+                          <span className="font-bold text-slate-500 uppercase tracking-wider">Sources:</span>
+                          {msg.sources.map((src, sIdx) => (
+                            <span
+                              key={sIdx}
+                              className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold border border-slate-200"
+                            >
+                              {src}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
+
+              {isLoadingReply && (
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#0f3675] text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Building2 className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 text-xs text-slate-600 flex items-center gap-2 shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
+                    <span className="font-semibold">Retrieving verified government scheme data...</span>
+                  </div>
+                </div>
+              )}
 
               <div ref={messagesEndRef} />
             </div>

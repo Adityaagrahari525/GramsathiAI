@@ -1,147 +1,42 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useCitizenProfile } from '../context/CitizenProfileContext';
+import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
+import { TopBar } from '../components/TopBar';
+import { Navbar } from '../components/Navbar';
 
 export function CitizenProfilePage() {
   const navigate = useNavigate();
+  const { profile, updateProfile, toggleFocusArea, selectAllFocusAreas, logout } = useCitizenProfile();
+  const { showToast } = useToast();
+  const { t } = useLanguage();
 
-  // Citizen Profile State
-  const [profile, setProfile] = useState({
-    name: 'Ramesh Dattatray Gaikwad',
-    mobile: '+91 98220 44912',
-    gender: 'Male',
-    age: '48 years (DOB: 14/06/1976)',
-    socialCategory: 'OBC (Other Backward Classes) - Non-Creamy',
-    occupation: 'Farmer / Cultivator (Small Farmer, 2.5 Acres)',
-    state: 'Maharashtra',
-    district: 'Pune',
-    taluka: 'Baramati',
-    village: 'Malegaon Budruk (माळेगाव बुद्रुक)',
-    pincode: '413102',
-    farmerId: 'MH-PUN-2023-5621',
-    aadhaarMasked: '**** **** 8921',
-    isEditing: false
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: profile.name,
+    mobile: profile.mobile,
+    socialCategory: profile.socialCategory,
+    occupation: profile.occupation,
+    district: profile.district,
+    taluka: profile.taluka,
+    village: profile.village,
+    pincode: profile.pincode
   });
-
-  // Focus areas checkboxes
-  const [focusAreas, setFocusAreas] = useState<Record<string, boolean>>({
-    agri: true,
-    solar: true,
-    housing: true,
-    cropInsurance: true,
-    dairy: false,
-    education: false
-  });
-
-  const toggleFocus = (key: string) => {
-    setFocusAreas(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const handleSelectAllFocus = () => {
-    setFocusAreas({
-      agri: true,
-      solar: true,
-      housing: true,
-      cropInsurance: true,
-      dairy: true,
-      education: true
-    });
-  };
 
   const handleSave = () => {
-    setProfile(prev => ({ ...prev, isEditing: false }));
-    alert('Citizen Profile updated successfully! Auto-synced with MahaDBT & PM-Kisan.');
+    updateProfile(editForm);
+    setIsEditing(false);
+    showToast(t('Citizen profile updated successfully'), 'success');
   };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
       {/* ── 1. Top Civic Header Ribbon ── */}
-      <div className="bg-slate-100 border-b border-slate-200 text-slate-600 text-[11px] py-1.5 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="w-3.5 h-2.5 rounded-xs bg-linear-to-b from-orange-500 via-white to-green-600 border border-slate-300 inline-block shrink-0" />
-            <span className="font-semibold text-slate-800">Government of Maharashtra</span>
-            <span className="text-slate-400">|</span>
-            <span className="font-medium text-slate-700 truncate">Public Civic Service Portal</span>
-          </div>
-          <div className="flex items-center space-x-3 shrink-0">
-            <div className="hidden sm:flex items-center space-x-1 text-slate-500">
-              <button className="px-1 hover:text-slate-900 font-semibold">A-</button>
-              <button className="px-1 hover:text-slate-900 font-bold">A</button>
-              <button className="px-1 hover:text-slate-900 font-extrabold">A+</button>
-            </div>
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <span className="hidden sm:inline hover:underline cursor-pointer">Screen Reader</span>
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <div className="flex items-center space-x-1.5 font-semibold">
-              <span className="text-slate-600 hover:text-blue-700 cursor-pointer text-xs">मराठी</span>
-              <span className="text-slate-300">/</span>
-              <span className="text-slate-600 hover:text-blue-700 cursor-pointer text-xs">हिंदी</span>
-              <span className="text-slate-300">/</span>
-              <span className="bg-[#1850b5] text-white text-[10px] px-2 py-0.5 rounded-full font-bold">English</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TopBar />
 
       {/* ── 2. Civic Navbar ── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#0f3675] to-[#1850b5] flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-blue-900/10">
-                GS
-              </div>
-              <div>
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-2xl font-bold tracking-tight text-[#0f3675]">GramSathi</span>
-                  <span className="text-2xl font-extrabold text-[#1850b5]">.AI</span>
-                </div>
-                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
-                  GramSathi AI Citizen Portal
-                </div>
-              </div>
-            </div>
-
-            {/* Nav Menu */}
-            <nav className="hidden xl:flex items-center space-x-1 font-medium text-xs text-slate-700">
-              <Link to="/schemes" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Explore Schemes
-              </Link>
-              <Link to="/schemes?saved=true" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Saved Schemes
-              </Link>
-              <Link to="/assistant" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                AI Citizen Assistant
-              </Link>
-              <Link to="/eligibility/results" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Eligibility Results
-              </Link>
-              <Link to="/needs" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Scheme Journey & Tracker
-              </Link>
-              <a href="https://grievances.maharashtra.gov.in" target="_blank" rel="noopener noreferrer" className="px-3 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Grievance / Helpdesk
-              </a>
-              <Link to="/profile" className="px-3.5 py-1.5 text-white font-bold bg-[#1850b5] rounded-lg shadow-2xs">
-                Citizen Profile
-              </Link>
-            </nav>
-
-            {/* Helpline & Profile Button */}
-            <div className="flex items-center space-x-3">
-              <div className="hidden sm:flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                <span>📞</span>
-                <span>1800-123-GRAM</span>
-              </div>
-              <div className="flex items-center space-x-2 bg-blue-50 text-[#1850b5] border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold">
-                <span>👤</span>
-                <span>Profile</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* ── 3. Breadcrumb & Sync Status Bar ── */}
       <div className="bg-white border-b border-slate-200 py-2.5 px-4 sm:px-6 lg:px-8">
@@ -149,14 +44,14 @@ export function CitizenProfilePage() {
           <div className="text-slate-500 font-medium">
             <span className="hover:text-blue-700 cursor-pointer" onClick={() => navigate('/')}>GramSathi AI</span>
             <span> / </span>
-            <span className="hover:text-blue-700 cursor-pointer" onClick={() => navigate('/schemes')}>Direct Benefits & Welfare</span>
+            <span className="hover:text-blue-700 cursor-pointer" onClick={() => navigate('/schemes')}>{t('Direct Benefits & Welfare')}</span>
             <span> / </span>
-            <span className="text-slate-800 font-bold">Citizen Services</span>
+            <span className="text-slate-800 font-bold">{t('Citizen Services')}</span>
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
-            <span className="w-2 h-2 rounded-full bg-blue-600 inline-block animate-pulse" />
-            <span>Workflow Sync: MahaDBT & PM-Kisan Live</span>
+          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+            <span>{t('Demonstration Workflow • MahaDBT & PM-Kisan Model')}</span>
           </div>
         </div>
       </div>
@@ -205,11 +100,11 @@ export function CitizenProfilePage() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setProfile(prev => ({ ...prev, isEditing: !prev.isEditing }))}
+                onClick={() => setIsEditing(!isEditing)}
                 className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5"
               >
                 <span>✎</span>
-                <span>{profile.isEditing ? 'Cancel Edit' : 'Edit Profile'}</span>
+                <span>{isEditing ? 'Cancel Edit' : 'Edit Profile'}</span>
               </button>
               <button
                 onClick={handleSave}
@@ -217,6 +112,17 @@ export function CitizenProfilePage() {
               >
                 <span>💾</span>
                 <span>Save Changes</span>
+              </button>
+              <button
+                onClick={async () => {
+                  await logout();
+                  navigate('/signin');
+                }}
+                className="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5 active:scale-[0.98]"
+                title="Sign out of Citizen Session"
+              >
+                <span>🚪</span>
+                <span>Sign Out</span>
               </button>
             </div>
           </div>
@@ -321,9 +227,9 @@ export function CitizenProfilePage() {
                   <div>
                     <div className="text-xs font-bold text-slate-700 mb-1">Social Category / Reservation Class</div>
                     <select
-                      value={profile.socialCategory}
-                      onChange={e => setProfile(prev => ({ ...prev, socialCategory: e.target.value }))}
-                      disabled={!profile.isEditing}
+                      value={isEditing ? editForm.socialCategory : profile.socialCategory}
+                      onChange={e => setEditForm(prev => ({ ...prev, socialCategory: e.target.value }))}
+                      disabled={!isEditing}
                       className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-900 disabled:opacity-90"
                     >
                       <option>OBC (Other Backward Classes) - Non-Creamy</option>
@@ -337,9 +243,9 @@ export function CitizenProfilePage() {
                   <div>
                     <div className="text-xs font-bold text-slate-700 mb-1">Primary Occupation & Landholding</div>
                     <select
-                      value={profile.occupation}
-                      onChange={e => setProfile(prev => ({ ...prev, occupation: e.target.value }))}
-                      disabled={!profile.isEditing}
+                      value={isEditing ? editForm.occupation : profile.occupation}
+                      onChange={e => setEditForm(prev => ({ ...prev, occupation: e.target.value }))}
+                      disabled={!isEditing}
                       className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-900 disabled:opacity-90"
                     >
                       <option>Farmer / Cultivator (Small Farmer, 2.5 Acres)</option>
@@ -391,9 +297,9 @@ export function CitizenProfilePage() {
                   <div>
                     <div className="text-xs font-bold text-slate-700 mb-1">District</div>
                     <select
-                      value={profile.district}
-                      onChange={e => setProfile(prev => ({ ...prev, district: e.target.value }))}
-                      disabled={!profile.isEditing}
+                      value={isEditing ? editForm.district : profile.district}
+                      onChange={e => setEditForm(prev => ({ ...prev, district: e.target.value }))}
+                      disabled={!isEditing}
                       className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-900 disabled:opacity-90"
                     >
                       <option>Pune</option>
@@ -408,9 +314,9 @@ export function CitizenProfilePage() {
                   <div>
                     <div className="text-xs font-bold text-slate-700 mb-1">Taluka / Tehsil</div>
                     <select
-                      value={profile.taluka}
-                      onChange={e => setProfile(prev => ({ ...prev, taluka: e.target.value }))}
-                      disabled={!profile.isEditing}
+                      value={isEditing ? editForm.taluka : profile.taluka}
+                      onChange={e => setEditForm(prev => ({ ...prev, taluka: e.target.value }))}
+                      disabled={!isEditing}
                       className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-900 disabled:opacity-90"
                     >
                       <option>Baramati</option>
@@ -474,7 +380,7 @@ export function CitizenProfilePage() {
                   </div>
                 </div>
                 <button
-                  onClick={handleSelectAllFocus}
+                  onClick={selectAllFocusAreas}
                   className="text-xs font-bold text-[#1850b5] hover:underline"
                 >
                   Select All
@@ -493,9 +399,9 @@ export function CitizenProfilePage() {
                 ].map(item => (
                   <div
                     key={item.id}
-                    onClick={() => toggleFocus(item.id)}
+                    onClick={() => toggleFocusArea(item.id)}
                     className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                      focusAreas[item.id] ? 'bg-blue-50/50 border-blue-300' : 'bg-slate-50 border-slate-200'
+                      profile.focusAreas?.[item.id] ? 'bg-blue-50/50 border-blue-300' : 'bg-slate-50 border-slate-200'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -507,8 +413,8 @@ export function CitizenProfilePage() {
                     </div>
                     <input
                       type="checkbox"
-                      checked={!!focusAreas[item.id]}
-                      onChange={() => toggleFocus(item.id)}
+                      checked={!!profile.focusAreas?.[item.id]}
+                      onChange={() => toggleFocusArea(item.id)}
                       className="w-4 h-4 rounded text-[#1850b5] border-slate-300 pointer-events-none"
                     />
                   </div>
@@ -646,7 +552,7 @@ export function CitizenProfilePage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => alert('Please select your PDF or Photo of Bank Passbook')}
+                    onClick={() => showToast('Simulated document upload: Please select your PDF or Photo of Bank Passbook', 'info')}
                     className="px-2.5 py-1 bg-[#1850b5] hover:bg-[#0f3675] text-white rounded-lg text-[10px] font-bold shadow-2xs"
                   >
                     Upload

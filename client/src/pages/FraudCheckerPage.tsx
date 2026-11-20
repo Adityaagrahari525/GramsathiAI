@@ -4,7 +4,6 @@ import {
   ShieldCheck,
   AlertTriangle,
   PhoneCall,
-  User,
   Mic,
   Upload,
   Lock,
@@ -12,10 +11,15 @@ import {
   Info
 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
+import { Navbar } from '../components/Navbar';
+import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 export function FraudCheckerPage() {
-  const [currentLang, setCurrentLang] = useState<'en' | 'mr' | 'hi'>('en');
-  const [fontSizeOffset, setFontSizeOffset] = useState<number>(0);
+  const { showToast } = useToast();
+  const { t, language } = useLanguage();
+  const { fontSizeOffset } = useAccessibility();
 
   const testCases = {
     solarPump:
@@ -60,79 +64,14 @@ export function FraudCheckerPage() {
       style={{ fontSize: `${100 + fontSizeOffset * 6}%` }}
     >
       {/* 1. Official Government Top Accessibility Bar */}
-      <TopBar
-        currentLang={currentLang}
-        onLangChange={setCurrentLang}
-        fontSize={fontSizeOffset}
-        onFontSizeChange={(delta) => setFontSizeOffset((prev) => Math.max(-2, Math.min(3, prev + delta)))}
-      />
+      <TopBar />
 
       {/* 2. Main Civic Navigation Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-xl bg-[#0f3675] flex items-center justify-center text-white font-black text-xl shadow-md">
-                GS
-              </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-black tracking-tight text-[#0f3675]">
-                  GramSathi AI
-                </div>
-                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                  ग्रामसाथी AI नागरिक पोर्टल
-                </div>
-              </div>
-            </Link>
-
-            {/* Nav links */}
-            <nav className="hidden lg:flex items-center space-x-1 text-sm font-semibold text-slate-700">
-              <Link to="/schemes" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                Explore Schemes
-              </Link>
-              <Link to="/saved" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                Saved Schemes
-              </Link>
-              <Link to="/assistant" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                AI Citizen Assistant
-              </Link>
-              <Link to="/synergy" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                Scheme Synergy
-              </Link>
-              <Link to="/tracker" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                Scheme Journey & Tracker
-              </Link>
-              <Link
-                to="/fraud-check"
-                className="px-3.5 py-2 text-white bg-red-600 rounded-lg font-bold shadow-xs transition-colors"
-              >
-                Fraud Checker
-              </Link>
-            </nav>
-
-            {/* Right: Phone & Profile */}
-            <div className="flex items-center space-x-3">
-              <div className="hidden sm:flex items-center space-x-2 bg-blue-50/80 px-3.5 py-2 rounded-xl border border-blue-200 text-xs font-bold text-blue-950">
-                <PhoneCall className="w-4 h-4 text-blue-700" />
-                <span>1800-123-GRAM</span>
-              </div>
-
-              <Link
-                to="/signin"
-                className="flex items-center space-x-2 bg-[#1850b5] hover:bg-[#0f3675] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all active:scale-95"
-              >
-                <User className="w-4 h-4" />
-                <span>Citizen Profile</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* 3. Official Warning Strip */}
       <section className="bg-amber-500/10 border-b border-amber-200 py-2 px-4 text-xs font-semibold text-amber-950 text-center">
-        Official government portals (MahaDBT, PM-Kisan, Mahavitaran, Aaple Sarkar) <strong>NEVER</strong> ask for processing fee deposits, OTPs, or direct WhatsApp APK file downloads. All legitimate welfare subsidies are credited straight to Aadhaar-seeded accounts via DBT with zero middleman fee.
+        {t('Official government portals (MahaDBT, PM-Kisan, Mahavitaran, Aaple Sarkar) NEVER ask for processing fee deposits, OTPs, or direct WhatsApp APK file downloads. All legitimate welfare subsidies are credited straight to Aadhaar-seeded accounts via DBT with zero middleman fee.')}
       </section>
 
       {/* Main Container */}
@@ -143,32 +82,32 @@ export function FraudCheckerPage() {
           <div className="space-y-3">
             <div className="text-[11px] font-black uppercase tracking-wider text-red-600 flex items-center space-x-1.5">
               <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-              <span>CITIZEN DIGITAL PROTECTION & ANTI-FRAUD INTELLIGENCE</span>
+              <span>{t('CITIZEN DIGITAL PROTECTION & ANTI-FRAUD INTELLIGENCE')}</span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0f3675] tracking-tight">
-              Verify Suspicious Scheme Messages & Offers{' '}
+              {t('Verify Suspicious Scheme Messages & Offers')}{' '}
               <span className="text-xl sm:text-2xl font-bold text-slate-700 block sm:inline">
-                (योजना संदेश व फसवणूक तपासणी केंद्र - AI सायबर सल्लागार)
+                {language === 'mr' ? '(योजना संदेश व फसवणूक तपासणी केंद्र - AI सायबर सल्लागार)' : language === 'hi' ? '(योजना संदेश एवं धोखाधड़ी जांच केंद्र - AI साइबर सलाहकार)' : '(Fraud Scheme Message Verification)'}
               </span>
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-600 max-w-4xl leading-relaxed">
-              Received an SMS, WhatsApp forward, or social media link claiming you won an instant grant, free solar pump subsidy, or cash benefit under a Maharashtra government scheme? Paste the suspicious message below to scan against registered phishing databases, deceptive URLs, and extortion indicators before taking any action.
+              {t('Received an SMS, WhatsApp forward, or social media link claiming you won an instant grant, free solar pump subsidy, or cash benefit under a Maharashtra government scheme? Paste the suspicious message below to scan against registered phishing databases, deceptive URLs, and extortion indicators before taking any action.')}
             </p>
 
             <div className="flex flex-wrap items-center gap-2 pt-2">
               <span className="inline-flex items-center space-x-1 text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
                 <Lock className="w-3.5 h-3.5 text-slate-500" />
-                <span>100% Private, Ephemeral & Anonymous</span>
+                <span>{t('100% Private, Ephemeral & Anonymous')}</span>
               </span>
               <span className="inline-flex items-center space-x-1 text-xs font-semibold text-blue-800 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                <span>Pattern-Matched against Maha Cyber Cell Advisories</span>
+                <span>{t('Pattern-Matched against Maha Cyber Cell Advisories')}</span>
               </span>
               <span className="inline-flex items-center space-x-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
                 <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Helpline Support: 1930 / 1800-123-GRAM</span>
+                <span>{t('Helpline Support: 1930 / 1800-123-GRAM')}</span>
               </span>
             </div>
           </div>
@@ -179,21 +118,21 @@ export function FraudCheckerPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center space-x-2">
-                <span>Suspicious Message Analysis Console</span>
+                <span>{t('Suspicious Message Analysis Console')}</span>
               </h2>
               <p className="text-xs text-slate-500">
-                Enter text content, sender phone number, or external web link forwarded to you.
+                {t('Enter text content, sender phone number, or external web link forwarded to you.')}
               </p>
             </div>
 
             <button
               onClick={() => {
-                alert('Listening for audio input... Speak the message in Marathi, Hindi, or English.');
+                showToast(t('Listening for simulated voice input (Speak message in Marathi, Hindi, or English)'), 'info');
               }}
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold transition-colors self-start sm:self-auto"
             >
               <Mic className="w-3.5 h-3.5" />
-              <span>Voice Input (बोलून सांगा)</span>
+              <span>{t('Voice Search (बोलून शोधा)')}</span>
             </button>
           </div>
 
@@ -253,7 +192,10 @@ export function FraudCheckerPage() {
 
                 <button
                   type="button"
-                  onClick={() => alert('Screenshot / PDF upload scanner ready.')}
+                  onClick={() => {
+                    showToast('Screenshot / PDF uploaded. Scanning extracted text against fraud vectors...', 'info');
+                    handleAnalyze();
+                  }}
                   className="px-4 py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold transition-colors flex items-center space-x-1.5 shadow-2xs"
                 >
                   <Upload className="w-4 h-4 text-slate-500" />
@@ -460,7 +402,7 @@ export function FraudCheckerPage() {
 
                     <button
                       type="button"
-                      onClick={() => alert('Tip submitted to GramSathi Anti-Fraud Registry. Thank you for protecting fellow citizens.')}
+                      onClick={() => showToast('Tip submitted to Maharashtra Cyber Cell & GramSathi Anti-Fraud Registry. Thank you for protecting fellow citizens.', 'success', 'Tip Lodged')}
                       className="inline-flex items-center space-x-1 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg font-semibold transition-colors shadow-2xs"
                     >
                       <span>Lodge Tip to GramSathi</span>

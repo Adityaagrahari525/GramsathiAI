@@ -9,6 +9,7 @@ export interface Scheme {
   departmentShort: string;
   level: 'Maharashtra' | 'Central' | 'Joint';
   benefitAmount: string;
+  benefits?: string;
   benefitType: 'cash' | 'subsidy' | 'loan' | 'scholarship' | 'employment';
   accentColor: 'emerald' | 'blue' | 'amber' | 'indigo';
   headerBadges: Array<{ text: string; variant: 'green' | 'blue' | 'amber' | 'gray' }>;
@@ -22,14 +23,19 @@ export interface Scheme {
     text: string;
   };
   summary: string;
+  description?: string;
   eligibility: string[];
   documents: string[];
+  applicationSteps?: string[];
   officialUrl: string;
+  sourceUrl?: string;
   tags: string[];
   targetBeneficiaries: string[];
   verified: boolean;
+  verificationStatus?: 'verified' | 'unverified' | 'demonstration';
   applicationMode: string;
   lastUpdated: string;
+  lastVerifiedDate?: string;
   schemeNo?: string;
 }
 
@@ -62,6 +68,8 @@ export const SCHEMES_DATABASE: Scheme[] = [
       text: 'Mode: Paperless online via MahaDBT/Mahaurja Portal'
     },
     summary: 'Subsidized 3 HP, 5 HP, and 7.5 HP off-grid solar agriculture pumps for farmers without grid electricity connection, guaranteeing daytime irrigation.',
+    description: 'Subsidized 3 HP, 5 HP, and 7.5 HP off-grid solar agriculture pumps for farmers without grid electricity connection, guaranteeing daytime irrigation.',
+    benefits: '90% to 95% capital subsidy for 3 HP, 5 HP, and 7.5 HP off-grid solar agriculture pump sets. General farmers pay 10%; SC/ST pay 5%.',
     eligibility: [
       'Farmer holding cultivable land with borewell/well/water source',
       'Plot must not have an existing commercial or MSEDCL electric agricultural connection',
@@ -69,12 +77,22 @@ export const SCHEMES_DATABASE: Scheme[] = [
       'Valid Aadhaar linked to bank account and active land title'
     ],
     documents: ['7/12 & 8-A Extract with water source stamp', 'Aadhaar Card', 'Caste Certificate (for SC/ST 95% rate)', 'Bank Passbook'],
+    applicationSteps: [
+      'Step 1: Check landholding (7/12 & 8-A) and ensure assured water source on plot.',
+      'Step 2: Verify zero existing grid agricultural power connection.',
+      'Step 3: Register and apply online via Mahavitaran / Mahaurja solar portal.',
+      'Step 4: MSEDCL Junior Engineer conducts physical site survey & GPS geo-tagging.',
+      'Step 5: Pay demand note (5%-10% farmer share) and empanelled vendor installs solar pump within 60 days.'
+    ],
     officialUrl: 'https://www.mahaurja.com',
+    sourceUrl: 'https://www.mahadiscom.in/solar_MSKVY/index_mr.html',
     tags: ['PM-KUSUM Solar Pump', 'Solar Pump', 'Agriculture', 'Irrigation', 'Subsidy'],
     targetBeneficiaries: ['Small & Marginal Farmers', 'SC/ST Farmers', 'Individual Landholders'],
     verified: true,
+    verificationStatus: 'demonstration',
     applicationMode: 'Online via MahaDBT / Mahaurja Portal',
     lastUpdated: 'Nov 2026',
+    lastVerifiedDate: '2026-11-15',
     schemeNo: 'MSKVY-2024'
   },
   {
@@ -105,6 +123,8 @@ export const SCHEMES_DATABASE: Scheme[] = [
       text: 'Direct Beneficiary: 2.1 Crore Women Enrolled'
     },
     summary: 'Direct monthly financial assistance of ₹1,500 to women aged 21-65 in Maharashtra from families earning under ₹2.5 Lakh annually.',
+    description: 'Direct monthly financial assistance of ₹1,500 to women aged 21-65 in Maharashtra from families earning under ₹2.5 Lakh annually.',
+    benefits: 'Direct financial aid of ₹1,500 every calendar month directly transferred into Aadhaar-seeded active bank account (₹18,000/year).',
     eligibility: [
       'Resident woman of Maharashtra aged 21 to 65 years',
       'Combined family annual income below ₹2.5 Lakh (or possess Yellow/Orange ration card)',
@@ -112,12 +132,22 @@ export const SCHEMES_DATABASE: Scheme[] = [
       'Family must not have a sitting MP/MLA or income-tax paying member'
     ],
     documents: ['Aadhaar Card', 'Yellow or Orange Ration Card / Income Certificate', 'Domicile Certificate / 15-year Ration Card', 'Aadhaar-seeded Bank Passbook'],
+    applicationSteps: [
+      'Step 1: Download Nari Shakti Doot App or visit nearest Anganwadi / Setu Kendra.',
+      'Step 2: Enter Aadhaar details and complete OTP biometric authentication.',
+      'Step 3: Upload Yellow/Orange Ration Card or Tehsildar income certificate (< ₹2.5 Lakh).',
+      'Step 4: Submit Aadhaar-seeded bank account details for Direct Benefit Transfer.',
+      'Step 5: Ward/Panchayat committee scrutiny and instant DBT monthly payout.'
+    ],
     officialUrl: 'https://ladakibahin.maharashtra.gov.in',
+    sourceUrl: 'https://ladakibahin.maharashtra.gov.in',
     tags: ['★ Majhi Ladki Bahin', 'Ladki Bahin', 'Women Empowerment', 'DBT Cash', 'Direct Benefit'],
     targetBeneficiaries: ['Women (21–65 yrs)', 'Rural Women', 'BPL Families', 'Self-employed Women'],
     verified: true,
+    verificationStatus: 'demonstration',
     applicationMode: 'Online via Nari Shakti Doot App / Anganwadi / Setu Kendra',
     lastUpdated: 'Nov 2026',
+    lastVerifiedDate: '2026-11-15',
     schemeNo: 'MMLBY-2024'
   },
   {
@@ -148,6 +178,8 @@ export const SCHEMES_DATABASE: Scheme[] = [
       text: 'Application Deadline: 31st March 2025'
     },
     summary: 'Full/partial reimbursement of tuition and examination fees for EBC and Open category students admitted through merit-based CAP in Maharashtra colleges.',
+    description: 'Full/partial reimbursement of tuition and examination fees for EBC and Open category students admitted through merit-based CAP in Maharashtra colleges.',
+    benefits: '50% to 100% tuition and examination fee waiver for EBC students whose family income is up to ₹8.00 Lakh.',
     eligibility: [
       'Domicile of Maharashtra and belonging to General / Open or EBC category',
       'Admitted through CAP round into recognized professional or non-professional degree/diploma',
@@ -155,12 +187,22 @@ export const SCHEMES_DATABASE: Scheme[] = [
       'Minimum 75% attendance in previous semester/year'
     ],
     documents: ['Income Certificate (under ₹8L)', 'CAP Allotment Letter', 'Domicile Certificate', 'Fee Receipt & College Bonafide'],
+    applicationSteps: [
+      'Step 1: Obtain Tehsildar Income Certificate (< ₹8.00 Lakh) and Maharashtra Domicile.',
+      'Step 2: Log in to MahaDBT portal (Post-Matric Scholarship section).',
+      'Step 3: Select Directorate of Higher/Technical Education scheme and input CAP allotment ID.',
+      'Step 4: Upload fee receipt, marksheet, and college bonafide certificate.',
+      'Step 5: College desk verification followed by direct DBT credit to student/college account.'
+    ],
     officialUrl: 'https://mahadbt.maharashtra.gov.in',
+    sourceUrl: 'https://mahadbt.maharashtra.gov.in',
     tags: ['EBC Scholarship', 'MahaDBT Post-Matric', 'Education', 'Scholarship', 'Students'],
     targetBeneficiaries: ['Students & Youth (18-35)', 'Open / General Students', 'EBC Students'],
     verified: true,
+    verificationStatus: 'demonstration',
     applicationMode: 'Online via MahaDBT Portal (Post-Matric Section)',
     lastUpdated: 'Oct 2026',
+    lastVerifiedDate: '2026-10-28',
     schemeNo: 'RCSM-EBC-24'
   },
   {
@@ -191,6 +233,8 @@ export const SCHEMES_DATABASE: Scheme[] = [
       text: 'Mode: Online via maha-cmegp.gov.in'
     },
     summary: 'Financial support and margin money subsidy for unemployed rural and urban youth setting up new manufacturing or service micro-enterprises in Maharashtra.',
+    description: 'Financial support and margin money subsidy for unemployed rural and urban youth setting up new manufacturing or service micro-enterprises in Maharashtra.',
+    benefits: '15% to 35% margin money government subsidy on project investments up to ₹50 Lakh for manufacturing and ₹10 Lakh for service units.',
     eligibility: [
       'Age between 18 and 45 years (relaxation up to 50 years for SC/ST/Women/Divyang)',
       'Minimum educational qualification 7th pass for projects above ₹10L; 10th pass for above ₹25L',
@@ -198,12 +242,22 @@ export const SCHEMES_DATABASE: Scheme[] = [
       'No loan default in any commercial or cooperative bank'
     ],
     documents: ['Detailed Project Report (DPR)', 'Aadhaar & PAN Card', '7th/10th/12th Passing Certificate', 'Maharashtra Domicile Certificate'],
+    applicationSteps: [
+      'Step 1: Prepare Detailed Project Report (DPR) and business investment breakdown.',
+      'Step 2: Register on maha-cmegp.gov.in and submit Aadhaar, educational & domicile certificates.',
+      'Step 3: District Task Force Committee (DTFC) reviews and forwards dossier to nominated bank.',
+      'Step 4: Bank sanctions term loan and working capital with subsidized margin release.',
+      'Step 5: Mandatory EDP entrepreneurship training and fund disbursement.'
+    ],
     officialUrl: 'https://maha-cmegp.gov.in',
+    sourceUrl: 'https://maha-cmegp.gov.in',
     tags: ['CMEGP', 'Rural MSME', 'Startup Loan', 'Self-Employment', 'Subsidy'],
     targetBeneficiaries: ['Students & Youth (18-35)', 'Rural Artisans / Traditional Labor', 'Women Entrepreneurs'],
     verified: true,
+    verificationStatus: 'demonstration',
     applicationMode: 'Online via maha-cmegp.gov.in',
     lastUpdated: 'Nov 2026',
+    lastVerifiedDate: '2026-11-10',
     schemeNo: 'CMEGP-2024'
   },
   {
@@ -217,6 +271,7 @@ export const SCHEMES_DATABASE: Scheme[] = [
     departmentShort: 'Ministry of Agriculture, GoI',
     level: 'Central',
     benefitAmount: '₹6,000 / Year (3 Tranches of ₹2,000)',
+    benefits: '₹6,000 per year transferred directly to Aadhaar-seeded bank accounts in three four-monthly installments of ₹2,000 each.',
     benefitType: 'cash',
     accentColor: 'emerald',
     headerBadges: [
@@ -234,6 +289,7 @@ export const SCHEMES_DATABASE: Scheme[] = [
       text: 'Direct Beneficiary: 85+ Lakh Maharashtra Farmers'
     },
     summary: 'Central income support of ₹6,000 per year in three installments directly credited to farmer bank accounts under PM-KISAN scheme.',
+    description: 'Central income support of ₹6,000 per year in three installments directly credited to farmer bank accounts under PM-KISAN scheme.',
     eligibility: [
       'Farmer family holding cultivable agricultural land registered in Maharashtra Bhulekh 7/12',
       'e-KYC completed via OTP or biometric CSC verification',
@@ -241,12 +297,22 @@ export const SCHEMES_DATABASE: Scheme[] = [
       'No institutional landholders or income-tax payers in household'
     ],
     documents: ['7/12 & 8-A Extract', 'Aadhaar Card', 'Bank Passbook', 'Land Title Document'],
+    applicationSteps: [
+      'Step 1: Register on pmkisan.gov.in portal or through local CSC VLE operator.',
+      'Step 2: Enter Aadhaar number, state (Maharashtra), district, taluka, and village.',
+      'Step 3: Input 7/12 land record Khata and survey number details.',
+      'Step 4: Complete biometric/OTP e-KYC authentication.',
+      'Step 5: State agriculture department approval and quarterly direct DBT disbursement.'
+    ],
     officialUrl: 'https://pmkisan.gov.in',
+    sourceUrl: 'https://pmkisan.gov.in',
     tags: ['PM-KISAN', 'Farmers', 'DBT', 'Income Support'],
     targetBeneficiaries: ['Small & Marginal Farmer', 'Landholding Farmers'],
     verified: true,
+    verificationStatus: 'demonstration',
     applicationMode: 'Online via pmkisan.gov.in / CSC VLE Center',
     lastUpdated: 'Nov 2026',
+    lastVerifiedDate: '2026-11-12',
     schemeNo: 'PMKISAN-19'
   },
   {
@@ -260,6 +326,7 @@ export const SCHEMES_DATABASE: Scheme[] = [
     departmentShort: 'Agriculture Dept, Maharashtra',
     level: 'Maharashtra',
     benefitAmount: 'Up to ₹1,25,000 or 50% Subsidy',
+    benefits: '50% capital subsidy (up to ₹1,25,000) for purchase of new tractors and farm machinery.',
     benefitType: 'subsidy',
     accentColor: 'emerald',
     headerBadges: [
@@ -277,6 +344,7 @@ export const SCHEMES_DATABASE: Scheme[] = [
       text: 'Mode: Lottery Selection via mahadbt.maharashtra.gov.in'
     },
     summary: 'Financial subsidy on purchasing new tractors, rotavators, power tillers, and implements through the MahaDBT Agriculture Portal.',
+    description: 'Financial subsidy on purchasing new tractors, rotavators, power tillers, and implements through the MahaDBT Agriculture Portal.',
     eligibility: [
       'Farmer owning cultivable land in Maharashtra (minimum 1 acre)',
       'Family has not availed tractor subsidy benefit in preceding 10 years',
@@ -284,12 +352,22 @@ export const SCHEMES_DATABASE: Scheme[] = [
       'Selected via computer lottery on MahaDBT portal'
     ],
     documents: ['7/12 Extract', 'Aadhaar Card', 'Dealer Quotation', 'Bank Passbook'],
+    applicationSteps: [
+      'Step 1: Log in to MahaDBT Farmer Schemes with Aadhaar or user credentials.',
+      'Step 2: Select Agricultural Mechanization component and chosen tractor HP.',
+      'Step 3: Upload 7/12 extract, 8-A, and authorized dealer quotation.',
+      'Step 4: Participate in transparent computerized lottery draw.',
+      'Step 5: On selection, purchase tractor, upload invoice and GPS photo for DBT grant release.'
+    ],
     officialUrl: 'https://mahadbt.maharashtra.gov.in',
+    sourceUrl: 'https://mahadbt.maharashtra.gov.in',
     tags: ['Tractor Subsidy', 'Mechanization', 'MahaDBT', 'Agriculture'],
     targetBeneficiaries: ['Small & Marginal Farmer', 'Women & SHG Members'],
     verified: true,
+    verificationStatus: 'demonstration',
     applicationMode: 'Online via MahaDBT Agriculture Schemes',
     lastUpdated: 'Oct 2026',
+    lastVerifiedDate: '2026-10-20',
     schemeNo: 'MAHADBT-AGRI-01'
   },
   {
@@ -303,6 +381,7 @@ export const SCHEMES_DATABASE: Scheme[] = [
     departmentShort: 'Agriculture Dept, Maharashtra',
     level: 'Joint',
     benefitAmount: 'Comprehensive Crop Damage Compensation',
+    benefits: 'Comprehensive crop damage compensation covering drought, unseasonal rain, and flood losses at ₹1 farmer share.',
     benefitType: 'subsidy',
     accentColor: 'emerald',
     headerBadges: [
@@ -320,6 +399,7 @@ export const SCHEMES_DATABASE: Scheme[] = [
       text: 'Seasonal Deadline: 31st July (Kharif) / 15th Dec (Rabi)'
     },
     summary: 'Comprehensive crop insurance covering non-preventable natural risks from pre-sowing to post-harvest stages for just ₹1 farmer premium.',
+    description: 'Comprehensive crop insurance covering non-preventable natural risks from pre-sowing to post-harvest stages for just ₹1 farmer premium.',
     eligibility: [
       'Cultivating notified crops in Maharashtra registered in e-Pik Pahani app',
       'Both loanee and non-loanee farmers eligible',
@@ -327,12 +407,22 @@ export const SCHEMES_DATABASE: Scheme[] = [
       'Timely insurance application before seasonal cutoff date'
     ],
     documents: ['7/12 Extract with e-Pik Pahani crop entry', 'Aadhaar Card', 'Bank Passbook', 'Crop Sowing Certificate'],
+    applicationSteps: [
+      'Step 1: Ensure crop sowing is registered on Maharashtra e-Pik Pahani mobile app.',
+      'Step 2: Log in to PMFBY portal or visit nearest Aaple Sarkar / CSC Center.',
+      'Step 3: Select notified crop, district, and survey Gat number from 7/12 extract.',
+      'Step 4: Pay ₹1 token premium (state covers remaining insurance premium).',
+      'Step 5: Download insured crop policy receipt; claim automatically triggered on area yield/weather distress.'
+    ],
     officialUrl: 'https://pmfby.gov.in',
+    sourceUrl: 'https://pmfby.gov.in',
     tags: ['Pik Vima (Crop Insurance 1₹)', 'Crop Insurance', 'Farmer', 'PMFBY'],
     targetBeneficiaries: ['Small & Marginal Farmer', 'All Landholders'],
     verified: true,
+    verificationStatus: 'demonstration',
     applicationMode: 'Online via pmfby.gov.in or CSC Center',
     lastUpdated: 'Nov 2026',
+    lastVerifiedDate: '2026-11-14',
     schemeNo: 'PMFBY-MH-2024'
   },
   {
@@ -346,6 +436,7 @@ export const SCHEMES_DATABASE: Scheme[] = [
     departmentShort: 'Social Justice Dept, Maharashtra',
     level: 'Maharashtra',
     benefitAmount: '₹1,500 / Month Pension',
+    benefits: '₹1,500 monthly social security financial pension transferred directly into beneficiary bank account.',
     benefitType: 'cash',
     accentColor: 'indigo',
     headerBadges: [
@@ -363,6 +454,7 @@ export const SCHEMES_DATABASE: Scheme[] = [
       text: 'Mode: Tehsildar / Sanjay Gandhi Niradhar Committee Approval'
     },
     summary: 'Monthly pension and livelihood assistance for destitutes, widows, blind, disabled, and terminally ill persons in Maharashtra.',
+    description: 'Monthly pension and livelihood assistance for destitutes, widows, blind, disabled, and terminally ill persons in Maharashtra.',
     eligibility: [
       'Resident of Maharashtra for at least 15 years',
       'Family annual income must be below ₹21,000 per year',
@@ -370,12 +462,22 @@ export const SCHEMES_DATABASE: Scheme[] = [
       'For Divyang category: 40% or higher permanent medical disability'
     ],
     documents: ['Income Certificate (below ₹21K)', 'Residence Certificate (15 yrs)', 'Disability Certificate (if applicable)', 'Bank Passbook'],
+    applicationSteps: [
+      'Step 1: Collect application form from Taluka Tehsil Office or download via Aaple Sarkar.',
+      'Step 2: Attach Tehsildar income certificate (< ₹21,000/yr) and 15-year Maharashtra residence proof.',
+      'Step 3: Attach Civil Surgeon medical certificate (for Divyang/illness) or death certificate (for widows).',
+      'Step 4: Submit to Taluka Sanjay Gandhi Niradhar Committee.',
+      'Step 5: Committee sanction and monthly direct bank pension credit.'
+    ],
     officialUrl: 'https://sjsa.maharashtra.gov.in',
+    sourceUrl: 'https://sjsa.maharashtra.gov.in',
     tags: ['Sanjay Gandhi Niradhar', 'Pension', 'Widow', 'Divyang', 'Social Welfare'],
     targetBeneficiaries: ['Senior Citizens (60+)', 'Divyangjan (Persons with Disability)', 'Women & SHG Members'],
     verified: true,
+    verificationStatus: 'demonstration',
     applicationMode: 'Offline via Taluka Tehsil Office / Aaple Sarkar Portal',
     lastUpdated: 'Nov 2026',
+    lastVerifiedDate: '2026-11-05',
     schemeNo: 'SGNY-MH-2024'
   }
 ];

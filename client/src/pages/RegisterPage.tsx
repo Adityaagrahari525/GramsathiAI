@@ -19,6 +19,8 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
+import { useCitizenProfile } from '../context/CitizenProfileContext';
+import { useToast } from '../context/ToastContext';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -70,10 +72,53 @@ export function RegisterPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { updateProfile, registerCitizen } = useCitizenProfile();
+  const { showToast } = useToast();
+
+  const handleSendOtp = () => {
+    if (mobile.length < 10) {
+      showToast('Please enter a valid 10-digit mobile number', 'warning');
+      return;
+    }
+    setOtpSent(true);
+    showToast(`Demonstration OTP: 482109 (Simulated — no live SMS sent)`, 'info', 'Simulated OTP');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('नोंदणी यशस्वी झाली! आपले ग्रामसाथी डिजिटल ओळखपत्र तयार झाले आहे.');
-    navigate('/schemes');
+    if (!fullName.trim()) {
+      showToast('Please enter your full legal name', 'warning');
+      return;
+    }
+    if (mobile.length < 10) {
+      showToast('Please enter a valid 10-digit mobile number', 'warning');
+      return;
+    }
+
+    await registerCitizen({
+      name: fullName,
+      mobile,
+      district,
+      taluka,
+      village: panchayat,
+      occupation,
+      socialCategory,
+    });
+
+    updateProfile({
+      name: fullName,
+      mobile: `+91 ${mobile}`,
+      district,
+      taluka,
+      village: panchayat,
+      pincode: pinCode,
+      socialCategory,
+      occupation,
+      aadhaarMasked: aadhaar ? `**** **** ${aadhaar.slice(-4)}` : '**** **** 8921'
+    });
+
+    showToast(`Citizen registration complete! Welcome to GramSathi AI, ${fullName}!`, 'success', 'Profile Created');
+    navigate('/profile');
   };
 
   return (
@@ -375,7 +420,7 @@ export function RegisterPage() {
                         />
                         <button
                           type="button"
-                          onClick={() => setOtpSent(true)}
+                          onClick={handleSendOtp}
                           className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-xs font-bold rounded-r-xl transition-colors whitespace-nowrap"
                         >
                           {otpSent ? 'OTP Sent' : 'Get OTP'}
@@ -399,7 +444,7 @@ export function RegisterPage() {
                         <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
                       </div>
                       <p className="text-[10px] text-slate-500 mt-1">
-                        Masked UIDAI-compliant e-KYC. Your Aadhaar is never shared publicly.
+                        [Demonstration Prototype] Masked UIDAI format. Data remains in local prototype memory; never transmitted externally.
                       </p>
                     </div>
                   </div>

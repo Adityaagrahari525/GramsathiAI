@@ -1,7 +1,14 @@
-import { useState, useMemo } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { SCHEMES_DATABASE, SECTORS_LIST, type Scheme } from '../data/schemesData';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { SECTORS_LIST, type Scheme } from '../data/schemesData';
+import { SchemeService } from '../services/schemeService';
 import { EligibilityModal } from '../components/EligibilityModal';
+import { TopBar } from '../components/TopBar';
+import { Navbar } from '../components/Navbar';
+import { useSavedSchemes } from '../context/SavedSchemesContext';
+import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
+import { extractQueryTokens, matchIntentFromQuery } from '../utils/searchHelper';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function SearchIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -27,11 +34,10 @@ function BookmarkIcon({ saved, onClick }: { saved?: boolean; onClick?: () => voi
         e.stopPropagation();
         onClick?.();
       }}
-      className={`p-1.5 rounded-lg border transition-colors ${
-        saved
-          ? 'bg-amber-50 border-amber-300 text-amber-600'
-          : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300'
-      }`}
+      className={`p-1.5 rounded-lg border transition-colors ${saved
+        ? 'bg-amber-50 border-amber-300 text-amber-600'
+        : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300'
+        }`}
       title={saved ? 'Remove bookmark' : 'Save scheme'}
     >
       <svg className="w-4 h-4" fill={saved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
@@ -174,15 +180,14 @@ function SchemeDetailModal({ scheme, onClose, onCheckEligibility }: { scheme: Sc
               {scheme.headerBadges.map((badge, idx) => (
                 <span
                   key={idx}
-                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                    badge.variant === 'green'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : badge.variant === 'amber'
+                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${badge.variant === 'green'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : badge.variant === 'amber'
                       ? 'bg-amber-50 text-amber-700 border-amber-200'
                       : badge.variant === 'blue'
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-slate-100 text-slate-700 border-slate-200'
-                  }`}
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
                 >
                   {badge.text}
                 </span>
@@ -211,15 +216,14 @@ function SchemeDetailModal({ scheme, onClose, onCheckEligibility }: { scheme: Sc
           </div>
 
           {/* Highlight Benefit Box */}
-          <div className={`p-4 rounded-xl border ${
-            scheme.highlightVariant === 'green'
-              ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-              : scheme.highlightVariant === 'amber'
+          <div className={`p-4 rounded-xl border ${scheme.highlightVariant === 'green'
+            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+            : scheme.highlightVariant === 'amber'
               ? 'bg-amber-50/70 border-amber-200 text-amber-950'
               : scheme.highlightVariant === 'purple'
-              ? 'bg-indigo-50/70 border-indigo-200 text-indigo-950'
-              : 'bg-blue-50/70 border-blue-200 text-blue-950'
-          }`}>
+                ? 'bg-indigo-50/70 border-indigo-200 text-indigo-950'
+                : 'bg-blue-50/70 border-blue-200 text-blue-950'
+            }`}>
             <div className="flex items-center gap-2 font-bold text-sm mb-1">
               <span className="w-5 h-5 rounded-full flex items-center justify-center bg-current/10">
                 <CheckIcon className="w-3.5 h-3.5" />
@@ -302,12 +306,6 @@ function SchemeDetailModal({ scheme, onClose, onCheckEligibility }: { scheme: Sc
           >
             Close
           </button>
-          <Link
-            to={`/schemes/${scheme.id}`}
-            className="px-4 py-2.5 text-sm font-semibold text-[#1850b5] hover:bg-blue-50 border border-blue-200 rounded-xl transition-colors"
-          >
-            Open Full Page →
-          </Link>
           <button
             onClick={() => {
               onClose();
@@ -328,6 +326,11 @@ function SchemeDetailModal({ scheme, onClose, onCheckEligibility }: { scheme: Sc
 export function SchemesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { isSaved, toggleSave } = useSavedSchemes();
+  const { showToast } = useToast();
+
+  const initialQuery = searchParams.get('q') || '';
+  const initialSector = searchParams.get('sector') || 'all';
 
   // Filter State initialized matching Stitch screen defaults
   const [filters, setFilters] = useState<FilterState>({
@@ -336,26 +339,56 @@ export function SchemesPage() {
     benefitType: [],
     socialCat: [],
     district: 'All 36 Districts (महाराष्ट्र सर्व जिल्हे)',
-    searchQuery: searchParams.get('q') || '',
-    sectorTab: 'all',
+    searchQuery: initialQuery,
+    sectorTab: initialSector,
     sortBy: 'relevant'
   });
 
-  const [searchInput, setSearchInput] = useState(filters.searchQuery);
+  const [searchInput, setSearchInput] = useState(initialQuery);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedScheme, setSelectedScheme] = useState<Scheme | null>(null);
   const [isEligibilityOpen, setIsEligibilityOpen] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  const [savedSchemeIds, setSavedSchemeIds] = useState<Set<string>>(new Set());
 
-  // Toggle bookmark
+  const { t, language } = useLanguage();
+  // REST API Dynamic Scheme State
+  const [schemesList, setSchemesList] = useState<Scheme[]>(() => SchemeService.getAll());
+  const [_isApiLoading, setIsApiLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    let mounted = true;
+    setIsApiLoading(true);
+    SchemeService.fetchAllAsync()
+      .then((data: Scheme[]) => {
+        if (mounted && Array.isArray(data) && data.length > 0) {
+          setSchemesList(data);
+        }
+      })
+      .finally(() => {
+        if (mounted) setIsApiLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Sync URL query updates
+  useEffect(() => {
+    const q = searchParams.get('q');
+    const s = searchParams.get('sector');
+    if (q !== null) {
+      setFilters(prev => ({ ...prev, searchQuery: q }));
+      setSearchInput(q);
+    }
+    if (s !== null) {
+      setFilters(prev => ({ ...prev, sectorTab: s }));
+    }
+  }, [searchParams]);
+
+  // Toggle bookmark using central persistent store
   const toggleBookmark = (id: string) => {
-    setSavedSchemeIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    toggleSave(id);
   };
 
   // Toggle helper for multi-select arrays
@@ -397,22 +430,63 @@ export function SchemesPage() {
 
   // Filter computation
   const filteredSchemes = useMemo(() => {
-    return SCHEMES_DATABASE.filter(scheme => {
+    return schemesList.filter(scheme => {
       // 1. Sector Tab filter
       if (filters.sectorTab !== 'all' && scheme.sector !== filters.sectorTab) {
         return false;
       }
 
-      // 2. Search query filter
+      // 2. Search query filter with Intent & Synonym Recognition
       if (filters.searchQuery.trim()) {
-        const q = filters.searchQuery.toLowerCase();
+        const rawQuery = filters.searchQuery.trim();
+        const q = rawQuery.toLowerCase();
+
+        // Exact substring checks
         const matchName = scheme.name.toLowerCase().includes(q);
         const matchMr = scheme.nameMr.toLowerCase().includes(q);
+        const matchHi = (scheme.nameHi || '').toLowerCase().includes(q);
         const matchDept = scheme.department.toLowerCase().includes(q);
         const matchTags = scheme.tags.some(t => t.toLowerCase().includes(q));
         const matchSummary = scheme.summary.toLowerCase().includes(q);
-        if (!matchName && !matchMr && !matchDept && !matchTags && !matchSummary) {
-          return false;
+        const matchBeneficiaries = scheme.targetBeneficiaries.some(b => b.toLowerCase().includes(q));
+
+        if (matchName || matchMr || matchHi || matchDept || matchTags || matchSummary || matchBeneficiaries) {
+          // Direct hit
+        } else {
+          // Concept & Intent matching (e.g. "find me schemes for farmers", "फाउंड स्कीम्स फॉर फार्मर्स", "sheti anudan")
+          const intent = matchIntentFromQuery(rawQuery);
+          if (intent.isMatchFound) {
+            const sectorMatch = intent.matchedSectors.includes(scheme.sector);
+            const tagMatch = scheme.tags.some(t => intent.matchedTags.includes(t.toLowerCase()));
+            const catMatch = scheme.targetBeneficiaries.some(b =>
+              intent.matchedCategories.some(c => b.toLowerCase().includes(c.toLowerCase()) || c.toLowerCase().includes(b.toLowerCase()))
+            );
+            const tokenHit = extractQueryTokens(rawQuery).some(token =>
+              token.length >= 3 && (
+                scheme.name.toLowerCase().includes(token) ||
+                scheme.nameMr.includes(token) ||
+                scheme.summary.toLowerCase().includes(token) ||
+                scheme.targetBeneficiaryText.toLowerCase().includes(token)
+              )
+            );
+
+            if (!sectorMatch && !tagMatch && !catMatch && !tokenHit) {
+              return false;
+            }
+          } else {
+            // Check individual token hits of length >= 3
+            const tokens = extractQueryTokens(rawQuery).filter(t => t.length >= 3);
+            const hasAnyToken = tokens.some(token =>
+              scheme.name.toLowerCase().includes(token) ||
+              scheme.nameMr.includes(token) ||
+              scheme.summary.toLowerCase().includes(token) ||
+              scheme.tags.some(t => t.toLowerCase().includes(token)) ||
+              scheme.targetBeneficiaries.some(b => b.toLowerCase().includes(token))
+            );
+            if (!hasAnyToken) {
+              return false;
+            }
+          }
         }
       }
 
@@ -427,9 +501,19 @@ export function SchemesPage() {
 
       // 4. Beneficiary category filter
       if (filters.beneficiaryCat.length > 0) {
-        const matchesBeneficiary = filters.beneficiaryCat.some(cat => 
-          scheme.targetBeneficiaries.some(b => b.toLowerCase().includes(cat.toLowerCase().split('/')[0].trim()))
-        );
+        const matchesBeneficiary = filters.beneficiaryCat.some(cat => {
+          const lowerCat = cat.toLowerCase();
+          if (lowerCat.includes('farmer') && (scheme.sector === 'agriculture' || scheme.targetBeneficiaries.some(b => b.toLowerCase().includes('farmer')))) {
+            return true;
+          }
+          if (lowerCat.includes('women') && (scheme.sector === 'women' || scheme.targetBeneficiaries.some(b => b.toLowerCase().includes('women')))) {
+            return true;
+          }
+          if (lowerCat.includes('student') && (scheme.sector === 'education' || scheme.targetBeneficiaries.some(b => b.toLowerCase().includes('student')))) {
+            return true;
+          }
+          return scheme.targetBeneficiaries.some(b => b.toLowerCase().includes(cat.toLowerCase().split('/')[0].trim()));
+        });
         if (!matchesBeneficiary) {
           return false;
         }
@@ -437,7 +521,7 @@ export function SchemesPage() {
 
       return true;
     });
-  }, [filters]);
+  }, [filters, schemesList]);
 
   // Sidebar Filter UI component (reused in desktop and mobile drawer)
   const FilterSidebar = () => (
@@ -478,7 +562,7 @@ export function SchemesPage() {
       {/* Group 1: Level of Government */}
       <div>
         <div className="flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
-          <span>Level of Government</span>
+          <span>{t('Level of Government')}</span>
           <span className="text-slate-400 text-[10px]">▲</span>
         </div>
         <div className="space-y-2">
@@ -490,7 +574,7 @@ export function SchemesPage() {
                 onChange={() => toggleCheckbox('levelGov', 'Maharashtra State Govt')}
                 className="w-4 h-4 rounded text-[#1850b5] border-slate-300 focus:ring-blue-500"
               />
-              <span>Maharashtra State Govt</span>
+              <span>{t('Maharashtra State Govt')}</span>
             </span>
             <span className="text-[11px] font-semibold text-slate-400">418</span>
           </label>
@@ -502,7 +586,7 @@ export function SchemesPage() {
                 onChange={() => toggleCheckbox('levelGov', 'Central Govt (Centrally Sponsored)')}
                 className="w-4 h-4 rounded text-[#1850b5] border-slate-300 focus:ring-blue-500"
               />
-              <span>Central Govt (Centrally Sponsored)</span>
+              <span>{t('Central Govt (Centrally Sponsored)')}</span>
             </span>
             <span className="text-[11px] font-semibold text-slate-400">114</span>
           </label>
@@ -514,7 +598,7 @@ export function SchemesPage() {
       {/* Group 2: Beneficiary Category */}
       <div>
         <div className="flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
-          <span>Beneficiary Category</span>
+          <span>{t('Beneficiary Category')}</span>
           <span className="text-slate-400 text-[10px]">▲</span>
         </div>
         <div className="space-y-2">
@@ -534,7 +618,7 @@ export function SchemesPage() {
                   onChange={() => toggleCheckbox('beneficiaryCat', item.label)}
                   className="w-4 h-4 rounded text-[#1850b5] border-slate-300 focus:ring-blue-500"
                 />
-                <span>{item.label}</span>
+                <span>{t(item.label)}</span>
               </span>
               <span className="text-[11px] font-semibold text-slate-400">{item.count}</span>
             </label>
@@ -547,7 +631,7 @@ export function SchemesPage() {
       {/* Group 3: Benefit Type */}
       <div>
         <div className="flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
-          <span>Benefit Type</span>
+          <span>{t('Benefit Type')}</span>
           <span className="text-slate-400 text-[10px]">▲</span>
         </div>
         <div className="space-y-2">
@@ -565,7 +649,7 @@ export function SchemesPage() {
                   onChange={() => toggleCheckbox('benefitType', item.label)}
                   className="w-4 h-4 rounded text-[#1850b5] border-slate-300 focus:ring-blue-500"
                 />
-                <span>{item.label}</span>
+                <span>{t(item.label)}</span>
               </span>
               <span className="text-[11px] font-semibold text-slate-400">{item.count}</span>
             </label>
@@ -578,7 +662,7 @@ export function SchemesPage() {
       {/* Group 4: Social Category / जात प्रवर्ग */}
       <div>
         <div className="flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
-          <span>Social Category / जात प्रवर्ग</span>
+          <span>{t('Social Category / जात प्रवर्ग')}</span>
           <span className="text-slate-400 text-[10px]">▲</span>
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
@@ -590,7 +674,7 @@ export function SchemesPage() {
                 onChange={() => toggleCheckbox('socialCat', cat)}
                 className="w-3.5 h-3.5 rounded text-[#1850b5] border-slate-300 focus:ring-blue-500"
               />
-              <span>{cat}</span>
+              <span>{t(cat)}</span>
             </label>
           ))}
         </div>
@@ -600,14 +684,14 @@ export function SchemesPage() {
 
       {/* Group 5: Target District */}
       <div>
-        <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Target District (Maharashtra)</div>
+        <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">{t('Target District (Maharashtra)')}</div>
         <select
           value={filters.district}
           onChange={e => setFilters(prev => ({ ...prev, district: e.target.value }))}
           className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {MAHARASHTRA_DISTRICTS.map(dist => (
-            <option key={dist} value={dist}>{dist}</option>
+            <option key={dist} value={dist}>{t(dist)}</option>
           ))}
         </select>
       </div>
@@ -617,15 +701,15 @@ export function SchemesPage() {
         <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold mb-3 shadow-xs">
           ?
         </div>
-        <h4 className="text-sm font-bold text-slate-900 mb-1">Uncertain of Eligibility?</h4>
+        <h4 className="text-sm font-bold text-slate-900 mb-1">{t('Uncertain of Eligibility?')}</h4>
         <p className="text-xs text-slate-600 leading-relaxed mb-3">
-          Answer 4 basic questions about your landholding, income, and category to receive guaranteed matching schemes.
+          {t('Answer 4 basic questions about your landholding, income, and category to receive guaranteed matching schemes.')}
         </p>
         <button
           onClick={() => setIsEligibilityOpen(true)}
           className="text-xs font-bold text-[#1850b5] hover:text-[#0f3675] flex items-center gap-1 group"
         >
-          <span>Start 2-Min Wizard</span>
+          <span>{t('Start 2-Min Wizard')}</span>
           <span className="group-hover:translate-x-1 transition-transform">→</span>
         </button>
       </div>
@@ -635,140 +719,34 @@ export function SchemesPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#f8fafc] text-slate-900">
       {/* ── 1. Top Government Ribbon ── */}
-      <div className="bg-slate-100 border-b border-slate-200 text-slate-600 text-[11px] py-1.5 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="w-3.5 h-2.5 rounded-xs bg-linear-to-b from-orange-500 via-white to-green-600 border border-slate-300 inline-block shrink-0" />
-            <span className="font-medium text-slate-700 truncate">
-              Government of Maharashtra Initiative — Aaple Sarkar Aligned Digital Civic Assistant
-            </span>
-          </div>
-          <div className="flex items-center space-x-4 shrink-0">
-            <div className="hidden sm:flex items-center space-x-1 text-slate-500">
-              <button className="px-1 hover:text-slate-900 font-semibold">A-</button>
-              <button className="px-1 hover:text-slate-900 font-bold">A</button>
-              <button className="px-1 hover:text-slate-900 font-extrabold">A+</button>
-            </div>
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <span className="hidden sm:inline hover:underline cursor-pointer">Screen Reader</span>
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <div className="flex items-center space-x-2 font-semibold">
-              <span className="hover:text-blue-700 cursor-pointer">मराठी</span>
-              <span className="text-slate-300">/</span>
-              <span className="hover:text-blue-700 cursor-pointer">हिंदी</span>
-              <span className="text-slate-300">/</span>
-              <span className="text-blue-700 underline font-bold cursor-pointer">English</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TopBar />
 
       {/* ── 2. Civic Navbar ── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <div
-              className="flex items-center space-x-3 cursor-pointer"
-              onClick={() => navigate('/')}
-            >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0f3675] to-[#1850b5] flex items-center justify-center text-white shadow-md shadow-blue-900/10">
-                <span className="text-xl font-bold">🏛</span>
-              </div>
-              <div>
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-2xl font-bold tracking-tight text-[#0f3675]">GramSathi</span>
-                  <span className="text-2xl font-extrabold text-[#1850b5]">.AI</span>
-                </div>
-                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
-                  महाराष्ट्र शासन - सार्वजनिक डिजिटल मदतनीस
-                </div>
-              </div>
-            </div>
-
-            {/* Nav Menu */}
-            <nav className="hidden lg:flex items-center space-x-1 font-medium text-sm text-slate-700">
-              <button
-                onClick={() => navigate('/')}
-                className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
-              >
-                Home
-              </button>
-              <button
-                onClick={() => navigate('/schemes')}
-                className="px-3.5 py-2 text-[#1850b5] font-semibold bg-blue-50/80 rounded-lg"
-              >
-                Explore Schemes
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
-              >
-                How It Works
-              </button>
-              <button
-                onClick={() => setIsEligibilityOpen(true)}
-                className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
-              >
-                Eligibility Tool
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors"
-              >
-                About Us
-              </button>
-              <a
-                href="https://grievances.maharashtra.gov.in"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3.5 py-2 text-slate-600 hover:text-red-600 hover:bg-slate-50 rounded-lg transition-colors"
-              >
-                Grievances / तक्रारनिवारण
-              </a>
-            </nav>
-
-            {/* Helpline & Sign In */}
-            <div className="flex items-center space-x-4">
-              <div className="hidden xl:flex flex-col text-right">
-                <span className="text-[11px] text-slate-500 font-medium">Toll Free Call</span>
-                <span className="text-sm font-bold text-slate-900 tracking-tight">1800-120-8040</span>
-              </div>
-              <button
-                onClick={() => navigate('/signin')}
-                className="flex items-center space-x-2 bg-[#1850b5] hover:bg-[#0f3675] text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-xs transition-all active:scale-[0.98]"
-              >
-                <span>Sign In / नागरिक लॉगिन</span>
-                <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">👤</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* ── 3. Breadcrumb & Live Data Sync Status Bar ── */}
       <div className="bg-white border-b border-slate-200 py-2.5 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
           {/* Breadcrumb */}
           <div className="flex items-center space-x-2 text-slate-500 font-medium">
-            <span className="hover:text-blue-700 cursor-pointer" onClick={() => navigate('/')}>Home</span>
+            <span className="hover:text-blue-700 cursor-pointer" onClick={() => navigate('/')}>{t('nav.home')}</span>
             <span>›</span>
-            <span className="text-slate-800 font-semibold">Explore Schemes / योजना शोधा</span>
+            <span className="text-slate-800 font-semibold">{t('nav.explore_schemes')}</span>
           </div>
 
           {/* Sync status */}
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1.5 text-slate-600 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-              <span>Data Synced: Today, 05:30 AM IST</span>
+            <div className="flex items-center space-x-1.5 text-slate-600 font-medium text-xs">
+              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+              <span>{t('Demonstration Workflow • MahaDBT & PM-Kisan Model')}</span>
             </div>
             <span className="text-slate-300">|</span>
             <button
-              onClick={() => alert('Database synchronized with latest Maharashtra Government Gazette & Central notifications.')}
+              onClick={() => showToast(t('Demonstration scheme database refreshed with latest Maharashtra benchmarks'), 'info')}
               className="flex items-center space-x-1 text-[#1850b5] hover:text-[#0f3675] font-semibold hover:underline"
             >
               <RefreshIcon className="w-3.5 h-3.5" />
-              <span>Refresh Data</span>
+              <span>{t('Refresh Data')}</span>
             </button>
           </div>
         </div>
@@ -788,13 +766,13 @@ export function SchemesPage() {
 
               {/* Headings */}
               <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0f3675] tracking-tight leading-tight">
-                Explore Government Schemes
+                {t('Explore Government Schemes')}
               </h1>
               <div className="text-lg sm:text-xl font-bold text-slate-700 mt-1">
-                शासकीय योजना शोधा व थेट हक्काचा लाभ मिळवा
+                {language === 'mr' ? 'शासकीय योजना शोधा व थेट हक्काचा लाभ मिळवा' : language === 'hi' ? 'सरकारी योजना खोजें और प्रत्यक्ष लाभ प्राप्त करें' : 'Discover Government Schemes & Direct Benefits'}
               </div>
               <p className="text-sm text-slate-600 leading-relaxed mt-2.5 max-w-3xl">
-                Search, filter, and compare 532+ verified welfare, subsidy, and scholarship initiatives across all 36 districts of Maharashtra. Check real-time qualification rules, mandatory 7/12 land records, and direct MahaDBT application links.
+                {t('Search, filter, and compare 532+ verified welfare, subsidy, and scholarship initiatives across all 36 districts of Maharashtra. Check real-time qualification rules, mandatory 7/12 land records, and direct MahaDBT application links.')}
               </p>
             </div>
 
@@ -806,8 +784,8 @@ export function SchemesPage() {
                   🏛
                 </div>
                 <div>
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Central & State Portals</div>
-                  <div className="text-xl font-extrabold text-[#0f3675]">38 Departments</div>
+                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{t('Central & State Portals')}</div>
+                  <div className="text-xl font-extrabold text-[#0f3675]">38 {t('Departments')}</div>
                 </div>
               </div>
 
@@ -817,7 +795,7 @@ export function SchemesPage() {
                   ₹
                 </div>
                 <div>
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Direct Benefit Transfers</div>
+                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{t('Direct Benefit Transfers')}</div>
                   <div className="text-xl font-extrabold text-emerald-800">100% Aadhaar DBT</div>
                 </div>
               </div>
@@ -835,17 +813,17 @@ export function SchemesPage() {
                   type="text"
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
-                  placeholder="Search by scheme name, sector, or benefit (e.g. drip irrigation, tractor subsidy, ladki bahin, scholar...)"
+                  placeholder={t('Search by scheme name, sector, or benefit (e.g. drip irrigation, tractor subsidy, ladki bahin, scholar...)')}
                   className="w-full pl-11 pr-36 py-3.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#1850b5] focus:border-transparent transition-all shadow-xs"
                 />
                 {/* Voice Search inside bar */}
                 <button
                   type="button"
-                  onClick={() => alert('Speech-to-text Marathi/Hindi search activating... Please speak your need.')}
+                  onClick={() => showToast(t('Simulated speech recognition: Speak in Marathi, Hindi, or English...'), 'info')}
                   className="absolute inset-y-1.5 right-1.5 px-3 bg-blue-50 hover:bg-blue-100 text-[#1850b5] rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
                 >
                   <MicIcon className="w-3.5 h-3.5" />
-                  <span>बोलून शोधा (Speak)</span>
+                  <span>{t('Voice Search (बोलून शोधा)')}</span>
                 </button>
               </div>
 
@@ -854,7 +832,7 @@ export function SchemesPage() {
                 type="submit"
                 className="bg-[#1850b5] hover:bg-[#0f3675] text-white px-7 py-3.5 rounded-xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 shrink-0 active:scale-[0.98]"
               >
-                <span>शोध / Search</span>
+                <span>{t('Search Schemes')}</span>
                 <ArrowRightIcon className="w-4 h-4" />
               </button>
             </div>
@@ -862,16 +840,15 @@ export function SchemesPage() {
 
           {/* Popular Searches */}
           <div className="flex items-center gap-2 mt-3.5 flex-wrap">
-            <span className="text-xs font-semibold text-slate-400">Popular Searches:</span>
+            <span className="text-xs font-semibold text-slate-400">{t('Popular Searches:')}</span>
             {POPULAR_SEARCH_PILLS.map(pill => (
               <button
                 key={pill}
                 onClick={() => handlePopularPillClick(pill)}
-                className={`text-xs font-semibold px-3 py-1 rounded-full border transition-colors ${
-                  pill.includes('Majhi Ladki')
-                    ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50/50'
-                }`}
+                className={`text-xs font-semibold px-3 py-1 rounded-full border transition-colors ${pill.includes('Majhi Ladki')
+                  ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50/50'
+                  }`}
               >
                 {pill}
               </button>
@@ -890,16 +867,14 @@ export function SchemesPage() {
                 <button
                   key={tab.id}
                   onClick={() => setFilters(prev => ({ ...prev, sectorTab: tab.id }))}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 shrink-0 ${
-                    isActive
-                      ? 'bg-[#1850b5] text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80 border border-transparent'
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 shrink-0 ${isActive
+                    ? 'bg-[#1850b5] text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80 border border-transparent'
+                    }`}
                 >
                   <span>{tab.title}</span>
-                  <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200'
-                  }`}>
+                  <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200'
+                    }`}>
                     {tab.schemesCount}
                   </span>
                 </button>
@@ -1010,7 +985,7 @@ export function SchemesPage() {
             ) : (
               <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
                 {filteredSchemes.map(scheme => {
-                  const isSaved = savedSchemeIds.has(scheme.id);
+                  const itemSaved = isSaved(scheme.id);
 
                   return (
                     <article
@@ -1022,10 +997,10 @@ export function SchemesPage() {
                           scheme.accentColor === 'emerald'
                             ? '#10b981'
                             : scheme.accentColor === 'amber'
-                            ? '#f59e0b'
-                            : scheme.accentColor === 'indigo'
-                            ? '#6366f1'
-                            : '#2563eb'
+                              ? '#f59e0b'
+                              : scheme.accentColor === 'indigo'
+                                ? '#6366f1'
+                                : '#2563eb'
                       }}
                     >
                       <div className="p-5 sm:p-6">
@@ -1035,45 +1010,43 @@ export function SchemesPage() {
                             {scheme.headerBadges.map((badge, idx) => (
                               <span
                                 key={idx}
-                                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
-                                  badge.variant === 'green'
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                    : badge.variant === 'amber'
+                                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${badge.variant === 'green'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : badge.variant === 'amber'
                                     ? 'bg-amber-50 text-amber-800 border-amber-200'
                                     : badge.variant === 'blue'
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                    : 'bg-slate-100 text-slate-700 border-slate-200'
-                                }`}
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}
                               >
                                 {badge.text}
                               </span>
                             ))}
                           </div>
-                          <BookmarkIcon saved={isSaved} onClick={() => toggleBookmark(scheme.id)} />
+                          <BookmarkIcon saved={itemSaved} onClick={() => toggleBookmark(scheme.id)} />
                         </div>
 
                         {/* Title & Department */}
                         <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug hover:text-blue-700 transition-colors cursor-pointer" onClick={() => setSelectedScheme(scheme)}>
-                          {scheme.name}
+                          {language === 'mr' ? (scheme.nameMr || scheme.name) : language === 'hi' ? (scheme.nameHi || scheme.nameMr || scheme.name) : scheme.name}
                         </h2>
                         <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-1">
                           <span>🏢</span>
-                          <span>{scheme.department}</span>
+                          <span>{t(scheme.department)}</span>
                         </div>
 
                         {/* Highlight Subsidy / Benefit Callout Box */}
-                        <div className={`mt-3.5 p-3.5 rounded-xl border ${
-                          scheme.highlightVariant === 'green'
-                            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-                            : scheme.highlightVariant === 'amber'
+                        <div className={`mt-3.5 p-3.5 rounded-xl border ${scheme.highlightVariant === 'green'
+                          ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                          : scheme.highlightVariant === 'amber'
                             ? 'bg-amber-50/70 border-amber-200 text-amber-950'
                             : scheme.highlightVariant === 'purple'
-                            ? 'bg-indigo-50/70 border-indigo-200 text-indigo-950'
-                            : 'bg-blue-50/70 border-blue-200 text-blue-950'
-                        }`}>
+                              ? 'bg-indigo-50/70 border-indigo-200 text-indigo-950'
+                              : 'bg-blue-50/70 border-blue-200 text-blue-950'
+                          }`}>
                           <div className="text-xs leading-relaxed font-medium">
-                            <strong className="font-bold mr-1">{scheme.highlightTitle}</strong>
-                            {scheme.highlightText}
+                            <strong className="font-bold mr-1">{t(scheme.highlightTitle)}</strong>
+                            {t(scheme.highlightText)}
                           </div>
                         </div>
 
@@ -1083,10 +1056,10 @@ export function SchemesPage() {
                           <div className="md:col-span-6">
                             <div className="font-bold text-slate-500 mb-1 flex items-center gap-1">
                               <span>🎯</span>
-                              <span>Target Beneficiary:</span>
+                              <span>{t('Target Beneficiary:')}</span>
                             </div>
                             <p className="text-slate-700 leading-relaxed font-medium">
-                              {scheme.targetBeneficiaryText}
+                              {t(scheme.targetBeneficiaryText)}
                             </p>
                           </div>
 
@@ -1094,7 +1067,7 @@ export function SchemesPage() {
                           <div className="md:col-span-6">
                             <div className="font-bold text-slate-500 mb-1.5 flex items-center gap-1">
                               <span>📄</span>
-                              <span>Mandatory Civic Documents:</span>
+                              <span>{t('Mandatory Civic Documents:')}</span>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                               {scheme.mandatoryDocs.map((doc, idx) => (
@@ -1102,7 +1075,7 @@ export function SchemesPage() {
                                   key={idx}
                                   className="bg-blue-50/80 text-blue-800 border border-blue-200/80 rounded-md px-2 py-0.5 font-semibold text-[11px]"
                                 >
-                                  {doc}
+                                  {t(doc)}
                                 </span>
                               ))}
                             </div>
@@ -1116,7 +1089,7 @@ export function SchemesPage() {
                           {scheme.bottomMeta.icon === 'mode' && <span>🌐</span>}
                           {scheme.bottomMeta.icon === 'beneficiaries' && <span>👥</span>}
                           {scheme.bottomMeta.icon === 'deadline' && <span>⏰</span>}
-                          <span>{scheme.bottomMeta.text}</span>
+                          <span>{t(scheme.bottomMeta.text)}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1131,14 +1104,14 @@ export function SchemesPage() {
                             className="px-4 py-2 bg-white hover:bg-slate-100 text-[#1850b5] border border-blue-300 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs"
                           >
                             <EyeIcon className="w-3.5 h-3.5" />
-                            <span>View Details</span>
+                            <span>{t('View Details')}</span>
                           </button>
                           <button
                             onClick={() => setIsEligibilityOpen(true)}
                             className="px-4 py-2 bg-[#1850b5] hover:bg-[#0f3675] text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs active:scale-[0.98]"
                           >
                             <CheckIcon className="w-3.5 h-3.5" />
-                            <span>Check My Eligibility</span>
+                            <span>{t('Check My Eligibility')}</span>
                           </button>
                         </div>
                       </div>

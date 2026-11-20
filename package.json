@@ -5,7 +5,15 @@
   "scripts": {
     "dev": "npm --prefix client run dev",
     "build": "npm --prefix client run build",
-    "preview": "npm --prefix client run preview"
+    "preview": "npm --prefix client run preview",
+    "mobile:start": "npm --prefix mobile start",
+    "mobile:android": "npm --prefix mobile run android",
+    "mobile:ios": "npm --prefix mobile run ios",
+    "mobile:web": "npm --prefix mobile run web",
+    "server:dev": "npm --prefix server run dev",
+    "server:build": "npm --prefix server run build",
+    "server:start": "npm --prefix server start",
+    "server:test": "npm --prefix server test"
   },
   "keywords": [
     "civic-tech",

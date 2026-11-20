@@ -1,21 +1,21 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck,
   AlertTriangle,
   Download,
-  PhoneCall,
-  User,
   ExternalLink,
   Layers,
   Shield,
   FileText
 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
+import { Navbar } from '../components/Navbar';
+import { useLanguage } from '../context/LanguageContext';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 export function BenefitSynergyPage() {
-  const [currentLang, setCurrentLang] = useState<'en' | 'mr' | 'hi'>('en');
-  const [fontSizeOffset, setFontSizeOffset] = useState<number>(0);
+  const { t, language } = useLanguage();
+  const { fontSizeOffset } = useAccessibility();
 
   return (
     <div
@@ -23,85 +23,20 @@ export function BenefitSynergyPage() {
       style={{ fontSize: `${100 + fontSizeOffset * 6}%` }}
     >
       {/* 1. Official Government Top Accessibility Bar */}
-      <TopBar
-        currentLang={currentLang}
-        onLangChange={setCurrentLang}
-        fontSize={fontSizeOffset}
-        onFontSizeChange={(delta) => setFontSizeOffset((prev) => Math.max(-2, Math.min(3, prev + delta)))}
-      />
+      <TopBar />
 
       {/* 2. Main Civic Navigation Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-xl bg-[#0f3675] flex items-center justify-center text-white font-black text-xl shadow-md">
-                GS
-              </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-black tracking-tight text-[#0f3675]">
-                  GramSathi AI
-                </div>
-                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                  ग्रामसाथी AI नागरिक पोर्टल
-                </div>
-              </div>
-            </Link>
-
-            {/* Nav links */}
-            <nav className="hidden lg:flex items-center space-x-1 text-sm font-semibold text-slate-700">
-              <Link to="/schemes" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                Explore Schemes
-              </Link>
-              <Link to="/saved" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                Saved Schemes
-              </Link>
-              <Link to="/assistant" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                AI Citizen Assistant
-              </Link>
-              <Link
-                to="/synergy"
-                className="px-3.5 py-2 text-white bg-[#1850b5] rounded-lg font-bold shadow-xs transition-colors"
-              >
-                Scheme Synergy
-              </Link>
-              <Link to="/tracker" className="px-3.5 py-2 hover:text-blue-700 hover:bg-slate-50 rounded-lg transition-colors">
-                Scheme Journey & Tracker
-              </Link>
-              <Link to="/fraud-check" className="px-3.5 py-2 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors text-red-600">
-                Fraud Checker
-              </Link>
-            </nav>
-
-            {/* Right: Phone & Profile */}
-            <div className="flex items-center space-x-3">
-              <div className="hidden sm:flex items-center space-x-2 bg-blue-50/80 px-3.5 py-2 rounded-xl border border-blue-200 text-xs font-bold text-blue-950">
-                <PhoneCall className="w-4 h-4 text-blue-700" />
-                <span>1800-123-GRAM</span>
-              </div>
-
-              <Link
-                to="/signin"
-                className="flex items-center space-x-2 bg-[#1850b5] hover:bg-[#0f3675] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all active:scale-95"
-              >
-                <User className="w-4 h-4" />
-                <span>Citizen Profile</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* 3. Breadcrumb & Status */}
       <section className="bg-white border-b border-slate-200 py-2.5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 gap-2">
           <div>
-            GramSathi AI / Direct Benefits & Welfare / <strong className="text-slate-800">Citizen Services</strong>
+            GramSathi AI / {t('Direct Benefits & Welfare')} / <strong className="text-slate-800">{t('Citizen Services')}</strong>
           </div>
-          <div className="flex items-center space-x-1.5 text-blue-900 font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Workflow Sync: MahaDBT & PM-Kisan Live</span>
+          <div className="flex items-center space-x-1.5 text-slate-600 font-semibold text-xs">
+            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span>{t('Demonstration Workflow • MahaDBT & PM-Kisan Model')}</span>
           </div>
         </div>
       </section>
@@ -115,18 +50,18 @@ export function BenefitSynergyPage() {
             <div className="space-y-2">
               <div className="text-[11px] font-black uppercase tracking-wider text-blue-700 flex items-center space-x-1.5">
                 <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                <span>MULTI-SCHEME OPTIMIZATION & ANTI-DUPLICATION ENGINE</span>
+                <span>{t('MULTI-SCHEME OPTIMIZATION & ANTI-DUPLICATION ENGINE')}</span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0f3675] tracking-tight">
-                Scheme Combination & Benefit Synergy Analysis{' '}
+                {t('Scheme Combination & Benefit Synergy Analysis')}{' '}
                 <span className="text-xl sm:text-2xl font-bold text-slate-700 block sm:inline">
-                  (योजना संयोग व समन्वय मूल्यांकन)
+                  {language === 'mr' ? '(योजना संयोग व समन्वय मूल्यांकन)' : language === 'hi' ? '(योजना संयोजन एवं समन्वय विश्लेषण)' : '(Scheme Combination & Synergy Analysis)'}
                 </span>
               </h1>
 
               <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
-                Evaluate how departmental agricultural, water, and energy schemes can be jointly utilized for your parcel without violating CAG double-subsidy prohibitions. Review compatibility rules, statutory exclusions, and separate survey mandates.
+                {t('Evaluate how departmental agricultural, water, and energy schemes can be jointly utilized for your parcel without violating CAG double-subsidy prohibitions. Review compatibility rules, statutory exclusions, and separate survey mandates.')}
               </p>
             </div>
 
@@ -135,7 +70,7 @@ export function BenefitSynergyPage() {
               className="self-start lg:self-center shrink-0 inline-flex items-center space-x-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-2xs"
             >
               <Download className="w-4 h-4 text-slate-500" />
-              <span>Download Advisory PDF</span>
+              <span>{t('Download Advisory PDF')}</span>
             </button>
           </div>
         </div>
@@ -146,10 +81,10 @@ export function BenefitSynergyPage() {
             <div className="w-7 h-7 rounded-lg bg-red-600 text-white flex items-center justify-center shrink-0">
               <Shield className="w-4 h-4" />
             </div>
-            <span>महत्त्वाची वैधानिक सूचना (Statutory Public Advisory: Anti-Double Subsidy Rule)</span>
+            <span>{t('महत्त्वाची वैधानिक सूचना (Statutory Public Advisory: Anti-Double Subsidy Rule)')}</span>
           </div>
           <p className="leading-relaxed pl-9 text-slate-700">
-            Government subsidies cannot be automatically bunched, co-funded on the same physical asset, or claimed through a single combined voucher. Each approved scheme requires an independent online application via official portals (MahaDBT / Mahavitaran), autonomous field survey, geo-tagged GPS photographs, and separate empanelled vendor billing. Claiming duplicate subsidies on the same physical machinery is a punishable civil offense under Maharashtra Audit Norms.
+            {t('Government subsidies cannot be automatically bunched, co-funded on the same physical asset, or claimed through a single combined voucher. Each approved scheme requires an independent online application via official portals (MahaDBT / Mahavitaran), autonomous field survey, geo-tagged GPS photographs, and separate empanelled vendor billing. Claiming duplicate subsidies on the same physical machinery is a punishable civil offense under Maharashtra Audit Norms.')}
           </p>
         </div>
 
@@ -157,63 +92,63 @@ export function BenefitSynergyPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-1">
             <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
-              <span>Analyzed Programs</span>
+              <span>{t('Analyzed Programs')}</span>
               <FileText className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900">04 Schemes</div>
-            <div className="text-[11px] text-slate-600">Cross-referenced for 2.5 Acres land</div>
-            <div className="text-[10px] font-bold text-emerald-700 pt-1">✓ Verified against 2024-25 GRs</div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900">04 {t('Schemes')}</div>
+            <div className="text-[11px] text-slate-600">{t('Cross-referenced for 2.5 Acres land')}</div>
+            <div className="text-[10px] font-bold text-emerald-700 pt-1">✓ {t('Verified against 2024-25 GRs')}</div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-1">
             <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
-              <span>Recommended Package</span>
+              <span>{t('Recommended Package')}</span>
               <Layers className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="text-xl sm:text-2xl font-black text-blue-700">01 Synergy</div>
-            <div className="text-[11px] text-slate-600">Solar Pump + Drip Irrigation</div>
-            <div className="text-[10px] font-bold text-blue-700 pt-1">● Safe concurrent filing allowed</div>
+            <div className="text-xl sm:text-2xl font-black text-blue-700">01 {t('Synergy')}</div>
+            <div className="text-[11px] text-slate-600">{t('Solar Pump + Drip Irrigation')}</div>
+            <div className="text-[10px] font-bold text-blue-700 pt-1">● {t('Safe concurrent filing allowed')}</div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-1">
             <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
-              <span>Conflict Interceptions</span>
+              <span>{t('Conflict Interceptions')}</span>
               <AlertTriangle className="w-4 h-4 text-red-600" />
             </div>
-            <div className="text-xl sm:text-2xl font-black text-red-600">01 Prohibited</div>
-            <div className="text-[11px] text-slate-600">Dual Solar Capital Subsidies</div>
-            <div className="text-[10px] font-bold text-red-700 pt-1">⚠️ Exclusion enforced by CAG</div>
+            <div className="text-xl sm:text-2xl font-black text-red-600">01 {t('Prohibited')}</div>
+            <div className="text-[11px] text-slate-600">{t('Dual Solar Capital Subsidies')}</div>
+            <div className="text-[10px] font-bold text-red-700 pt-1">⚠️ {t('Exclusion enforced by CAG')}</div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-1">
             <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
-              <span>Combined Public Relief</span>
+              <span>{t('Combined Public Relief')}</span>
               <span className="text-xs font-bold text-slate-400">₹</span>
             </div>
             <div className="text-xl sm:text-2xl font-black text-slate-900">₹2,45,000</div>
-            <div className="text-[11px] text-slate-600">Maximum cumulative state aid</div>
-            <div className="text-[10px] font-bold text-slate-500 pt-1">🧾 Requires 2 separate invoices</div>
+            <div className="text-[11px] text-slate-600">{t('Maximum cumulative state aid')}</div>
+            <div className="text-[10px] font-bold text-slate-500 pt-1">🧾 {t('Requires 2 separate invoices')}</div>
           </div>
         </div>
 
         {/* Compatibility Index Legend Bar */}
         <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="font-bold text-slate-800 flex items-center space-x-2">
-            <span>Maharashtra Civic Scheme Compatibility Index</span>
+            <span>{t('Maharashtra Civic Scheme Compatibility Index')}</span>
           </div>
 
           <div className="flex items-center space-x-3 text-[11px]">
             <span className="inline-flex items-center space-x-1.5 font-semibold text-blue-800">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-              <span>Fully Compatible (Safe)</span>
+              <span>{t('Fully Compatible (Safe)')}</span>
             </span>
             <span className="inline-flex items-center space-x-1.5 font-semibold text-amber-800">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <span>Conditional (Clearance Needed)</span>
+              <span>{t('Conditional (Clearance Needed)')}</span>
             </span>
             <span className="inline-flex items-center space-x-1.5 font-semibold text-red-700">
               <span className="w-2.5 h-2.5 rounded-full bg-red-600"></span>
-              <span>Mutually Exclusive (Illegal)</span>
+              <span>{t('Mutually Exclusive (Illegal)')}</span>
             </span>
           </div>
         </div>
@@ -226,12 +161,12 @@ export function BenefitSynergyPage() {
                 1
               </div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                Recommended Complementary Synergy (Safe to Combine)
+                {t('Recommended Complementary Synergy (Safe to Combine)')}
               </h2>
             </div>
 
             <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-              Compatible Asset Categories • Concurrent Filing
+              {t('Compatible Asset Categories • Concurrent Filing')}
             </span>
           </div>
 
@@ -240,13 +175,13 @@ export function BenefitSynergyPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-blue-900 bg-blue-200/60 px-2 py-0.5 rounded">
-                  OPTIMAL COMBO Target Need: Reliable Daytime Irrigation & Low Water Consumption
+                  {t('OPTIMAL COMBO Target Need: Reliable Daytime Irrigation & Low Water Consumption')}
                 </span>
                 <h3 className="text-lg font-black text-[#0f3675] mt-1.5">
-                  Solar Agricultural Pumping (MSKVY 2.0 / PM-KUSUM) + Micro-Drip Irrigation System (PMKSY)
+                  {t('Solar Agricultural Pumping (MSKVY 2.0 / PM-KUSUM) + Micro-Drip Irrigation System (PMKSY)')}
                 </h3>
                 <p className="text-xs text-slate-700 leading-relaxed max-w-3xl mt-1">
-                  <strong>Technical Synergy Rationale:</strong> The solar pump provides independent zero-cost electrical extraction from your existing dug well during peak sunshine hours. The micro-drip system regulates that flow with pressurized filtration, conserving water by up to 55% and preventing over-extraction from the 2.5-acre aquifer.
+                  <strong>{t('Technical Synergy Rationale:')}</strong> {t('The solar pump provides independent zero-cost electrical extraction from your existing dug well during peak sunshine hours. The micro-drip system regulates that flow with pressurized filtration, conserving water by up to 55% and preventing over-extraction from the 2.5-acre aquifer.')}
                 </p>
               </div>
 

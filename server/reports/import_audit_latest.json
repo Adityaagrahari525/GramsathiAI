@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-11-18T16:36:39.605Z",
+  "sourceFile": "maharashtra_verified_schemes.json",
+  "isDryRun": false,
+  "totalRecordsProcessed": 25,
+  "normalizedCount": 25,
+  "validCount": 25,
+  "rejectedCount": 0,
+  "duplicateCount": 0,
+  "verifiedCount": 25,
+  "unverifiedCount": 0,
+  "maharashtraCount": 25,
+  "otherStatesCount": 0,
+  "databaseUpsertedCount": 25,
+  "rejections": [],
+  "duplicates": []
+}

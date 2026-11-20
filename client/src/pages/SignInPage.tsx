@@ -16,6 +16,8 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
+import { useCitizenProfile } from '../context/CitizenProfileContext';
+import { useToast } from '../context/ToastContext';
 
 export function SignInPage() {
   const navigate = useNavigate();
@@ -92,15 +94,27 @@ export function SignInPage() {
     }
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const { login } = useCitizenProfile();
+  const { showToast } = useToast();
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate login
-    alert(
-      currentLang === 'mr'
-        ? 'लॉगिन यशस्वी! ग्रामसाथी नागरिक डॅशबोर्डवर आपले स्वागत आहे.'
-        : 'Sign In Successful! Welcome to GramSathi Citizen Dashboard.'
-    );
-    navigate('/');
+    if (authMode === 'mobile' && mobileNumber.length < 10) {
+      showToast('Please enter a valid 10-digit mobile number', 'warning');
+      return;
+    }
+    if (authMode === 'aadhaar' && aadhaarNumber.replace(/\s/g, '').length < 12) {
+      showToast('Please enter a valid 12-digit Aadhaar number', 'warning');
+      return;
+    }
+    const enteredOtp = otp.join('');
+    if (enteredOtp.length < 6) {
+      showToast('Please enter all 6 digits of the verification OTP (e.g. 482109)', 'warning');
+      return;
+    }
+
+    await login(mobileNumber || '9876543210');
+    navigate('/profile');
   };
 
   return (
@@ -317,7 +331,7 @@ export function SignInPage() {
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1.5">
-                  We will send a 6-digit verification code to this handset via BSNL/MahaGovt SMS gateway.
+                  [Simulation / Prototype] Simulated 6-digit OTP code generation for demonstration testing (no live SMS sent).
                 </p>
 
                 <button
@@ -325,11 +339,13 @@ export function SignInPage() {
                   onClick={() => {
                     setOtpSent(true);
                     setTimerSeconds(118);
+                    setOtp(['4', '8', '2', '1', '0', '9']);
+                    showToast('Demonstration OTP: 482109 (Simulated — no live SMS sent)', 'info', 'Simulated OTP');
                   }}
                   className="mt-3 w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-bold shadow-xs transition-colors"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Get OTP on Mobile (ओटीपी मिळवा)</span>
+                  <span>Get OTP on Mobile (ओटीपी मिळवा - Demo)</span>
                 </button>
               </div>
             ) : (
@@ -347,7 +363,7 @@ export function SignInPage() {
                   required
                 />
                 <p className="text-[11px] text-slate-500 mt-1.5">
-                  UIDAI e-KYC compliant. Aadhaar details are processed via encrypted state gateway.
+                  [Demonstration Mode] Simulated Aadhaar e-KYC entry. No actual Aadhaar biometric lookup is performed.
                 </p>
               </div>
             )}
@@ -385,7 +401,11 @@ export function SignInPage() {
                 <div className="flex items-center justify-between mt-2.5 text-xs">
                   <button
                     type="button"
-                    onClick={() => setTimerSeconds(120)}
+                    onClick={() => {
+                      setTimerSeconds(120);
+                      setOtp(['4', '8', '2', '1', '0', '9']);
+                      showToast('Fresh OTP resent to your registered handset: 482109', 'info');
+                    }}
                     className="text-blue-700 hover:underline font-semibold"
                   >
                     Resend OTP via SMS

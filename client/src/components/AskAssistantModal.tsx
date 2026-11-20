@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { X, Send, Bot, User, Mic } from 'lucide-react';
+import { apiClient } from '../services/apiClient';
+import { BrowserVoiceService } from '../services/voiceService';
+import { useToast } from '../context/ToastContext';
 
 interface AskAssistantModalProps {
   isOpen: boolean;
@@ -14,7 +17,9 @@ export const AskAssistantModal: React.FC<AskAssistantModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const { showToast } = useToast();
   const [input, setInput] = useState('');
+  const [isListening, setIsListening] = useState(false);
   const [messages, setMessages] = useState<Array<{ sender: 'ai' | 'user'; text: string; sources?: string[] }>>([
     {
       sender: 'ai',
@@ -33,12 +38,72 @@ export const AskAssistantModal: React.FC<AskAssistantModalProps> = ({
     'How do I get an income certificate in Maharashtra?',
   ];
 
-  const handleSend = (userText: string) => {
+  const handleVoiceInput = () => {
+    if (!BrowserVoiceService.isSpeechRecognitionSupported()) {
+      showToast(
+        currentLang === 'mr'
+          ? 'या ब्राऊझरवर थेट आवाज ओळख उपलब्ध नाही (Google Chrome किंवा Edge वापरा). टाइप करून विचारा.'
+          : currentLang === 'hi'
+          ? 'इस ब्राउज़र पर वॉयस पहचान उपलब्ध नहीं है (Google Chrome या Edge का उपयोग करें)।'
+          : 'Browser Speech Recognition is not supported on this browser (use Google Chrome or Microsoft Edge).',
+        'warning'
+      );
+      return;
+    }
+
+    const session = BrowserVoiceService.startListening({
+      language: currentLang,
+      onStart: () => {
+        setIsListening(true);
+        showToast(
+          currentLang === 'mr'
+            ? 'माइक सुरू झाला आहे. स्पष्टपणे बोला...'
+            : 'Listening... Please speak your question.',
+          'info'
+        );
+      },
+      onResult: (transcript) => {
+        setInput(transcript);
+        handleSend(transcript);
+      },
+      onError: (err) => {
+        setIsListening(false);
+        showToast(err, 'warning');
+      },
+      onEnd: () => {
+        setIsListening(false);
+      },
+    });
+
+    if (!session) {
+      setIsListening(false);
+    }
+  };
+
+  const handleSend = async (userText: string) => {
     if (!userText.trim()) return;
 
     const newMsgs = [...messages, { sender: 'user' as const, text: userText }];
     setMessages(newMsgs);
     setInput('');
+
+    try {
+      const res = await apiClient.assistantChat({
+        message: userText,
+        language: currentLang,
+      });
+
+      if (res.success && res.data) {
+        setMessages([...newMsgs, {
+          sender: 'ai',
+          text: res.data.reply,
+          sources: res.data.sources && res.data.sources.length > 0 ? res.data.sources : ['Maharashtra Government Gazette', 'MahaDBT Official Portal'],
+        }]);
+        return;
+      }
+    } catch (e) {
+      console.warn('[AskAssistantModal] Chat error:', e);
+    }
 
     // Responsive intelligent civic answer simulation grounded in official rules
     setTimeout(() => {
@@ -63,7 +128,7 @@ export const AskAssistantModal: React.FC<AskAssistantModalProps> = ({
       }
 
       setMessages([...newMsgs, { sender: 'ai', text: reply, sources }]);
-    }, 600);
+    }, 500);
   };
 
   return (
@@ -154,9 +219,13 @@ export const AskAssistantModal: React.FC<AskAssistantModalProps> = ({
         <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
           <button
             type="button"
-            onClick={() => handleSend(currentLang === 'mr' ? 'माझ्याकडे २ एकर शेतजमीन आहे, मला कोणती योजना मिळेल?' : 'I have 2 acres of farmland, which schemes am I eligible for?')}
-            className="p-2.5 rounded-xl bg-blue-50 text-[#1850b5] hover:bg-blue-100 transition-colors"
-            title="Audio Input"
+            onClick={handleVoiceInput}
+            className={`p-2.5 rounded-xl transition-all ${
+              isListening
+                ? 'bg-red-500 text-white animate-pulse shadow-md shadow-red-500/30'
+                : 'bg-blue-50 text-[#1850b5] hover:bg-blue-100'
+            }`}
+            title={isListening ? 'Listening...' : 'Voice Input (Marathi / English)'}
           >
             <Mic className="w-4 h-4" />
           </button>

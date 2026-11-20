@@ -18,6 +18,9 @@ import {
 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { EligibilityModal } from '../components/EligibilityModal';
+import { useSavedSchemes } from '../context/SavedSchemesContext';
+import { SchemeService } from '../services/schemeService';
+import { useToast } from '../context/ToastContext';
 
 interface SavedSchemeItem {
   id: string;
@@ -40,6 +43,9 @@ interface SavedSchemeItem {
 }
 
 export function SavedSchemesPage() {
+  const { savedIds, removeSaved } = useSavedSchemes();
+  const { showToast } = useToast();
+
   const [currentLang, setCurrentLang] = useState<'en' | 'mr' | 'hi'>('en');
   const [fontSizeOffset, setFontSizeOffset] = useState<number>(0);
   const [isEligibilityOpen, setIsEligibilityOpen] = useState(false);
@@ -48,8 +54,9 @@ export function SavedSchemesPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'eligible' | 'action_required'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
 
-  const initialSchemes: SavedSchemeItem[] = [
-    {
+  // Baseline templates for the 3 Stitch preset screens
+  const presetSchemesMap: Record<string, SavedSchemeItem> = {
+    'saur-krushi-vahini': {
       id: 'saur-krushi-vahini',
       title: 'Mukhyamantri Saur Krushi Vahini Yojana 2.0 (Solar Agri Pump Scheme)',
       department: 'Dept. of Energy & Agriculture • Govt. of Maharashtra',
@@ -67,7 +74,7 @@ export function SavedSchemesPage() {
       detailsUrl: '/scheme/saur-krushi-vahini',
       category: 'agri',
     },
-    {
+    'dr-ambedkar-krishi': {
       id: 'dr-ambedkar-krishi',
       title: 'Dr. Babasaheb Ambedkar Krishi Swavalamban Yojana',
       department: 'Social Justice & Special Assistance Department',
@@ -86,7 +93,7 @@ export function SavedSchemesPage() {
       detailsUrl: '/schemes',
       category: 'agri',
     },
-    {
+    'ramai-awas': {
       id: 'ramai-awas',
       title: 'Ramai Awas Gharkul Yojana (Rural Housing Scheme)',
       department: 'Rural Development & Housing Department',
@@ -103,13 +110,74 @@ export function SavedSchemesPage() {
       primaryActionUrl: '#eligibility',
       detailsUrl: '/schemes',
       category: 'social',
-    },
-  ];
+    }
+  };
 
-  const [schemes, setSchemes] = useState<SavedSchemeItem[]>(initialSchemes);
+  // Convert saved IDs to complete items
+  const schemes: SavedSchemeItem[] = useMemo(() => {
+    return savedIds.map((id) => {
+      if (presetSchemesMap[id]) return presetSchemesMap[id];
+      const found = SchemeService.getById(id);
+      if (found) {
+        let cat: SavedSchemeItem['category'] = 'agri';
+        if (found.sector === 'women') cat = 'women';
+        else if (found.sector === 'education') cat = 'education';
+        else if (found.sector === 'msme') cat = 'social';
+
+        return {
+          id: found.id,
+          title: found.name,
+          department: found.department,
+          statusBadge: '✓ Saved for Review',
+          statusType: 'eligible',
+          savedDate: 'Recently Saved',
+          subtags: found.tags.slice(0, 3),
+          benefitHighlight: found.benefitAmount,
+          benefitText: found.highlightText,
+          metaMetricLabel: 'Benefit Mode',
+          metaMetric: found.benefitType.toUpperCase(),
+          checklist: found.mandatoryDocs,
+          primaryActionLabel: 'View Scheme Details',
+          primaryActionUrl: `/schemes/${found.id}`,
+          detailsUrl: `/schemes/${found.id}`,
+          category: cat
+        };
+      }
+      return {
+        id,
+        title: id,
+        department: 'Government of Maharashtra',
+        statusBadge: 'Saved Scheme',
+        statusType: 'not_evaluated',
+        savedDate: 'Recently Saved',
+        subtags: ['Maharashtra Welfare'],
+        benefitHighlight: 'State Benefit',
+        benefitText: 'Government welfare assistance scheme.',
+        metaMetricLabel: 'Status',
+        metaMetric: 'Active',
+        checklist: ['Aadhaar Card'],
+        primaryActionLabel: 'Explore Details',
+        primaryActionUrl: '/schemes',
+        detailsUrl: '/schemes',
+        category: 'agri'
+      };
+    });
+  }, [savedIds]);
 
   const handleRemoveScheme = (id: string) => {
-    setSchemes((prev) => prev.filter((s) => s.id !== id));
+    removeSaved(id);
+  };
+
+  const handleShareWhatsApp = () => {
+    const text = `GramSathi AI: I have saved ${schemes.length} verified Maharashtra government schemes on my civic profile. Check them out on GramSathi AI platform!`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleExportPdf = () => {
+    showToast('Preparing printable PDF factsheet of saved schemes...', 'info');
+    setTimeout(() => {
+      window.print();
+    }, 500);
   };
 
   const filteredSchemes = useMemo(() => {
@@ -224,22 +292,20 @@ export function SavedSchemesPage() {
 
             <div className="flex items-center space-x-2 shrink-0">
               <button
-                onClick={() => window.print()}
+                onClick={handleExportPdf}
                 className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors"
               >
                 <Download className="w-3.5 h-3.5 text-slate-500" />
                 <span>Export List (PDF)</span>
               </button>
 
-              <a
-                href="https://wa.me/?text=My%20Saved%20Schemes%20on%20GramSathi"
-                target="_blank"
-                rel="noreferrer"
+              <button
+                onClick={handleShareWhatsApp}
                 className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold shadow-2xs transition-colors"
               >
                 <Share2 className="w-3.5 h-3.5 text-emerald-700" />
                 <span>Share via WhatsApp</span>
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -286,7 +352,7 @@ export function SavedSchemesPage() {
             </div>
             <div>
               <div className="text-xs sm:text-sm font-bold text-slate-900">Today, 11:42 AM</div>
-              <div className="text-[11px] font-semibold text-emerald-700">MahaDBT Live Sync: Active</div>
+              <div className="text-[11px] font-semibold text-slate-500">MahaDBT Model (Demo)</div>
             </div>
           </div>
         </div>

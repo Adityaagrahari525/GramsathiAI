@@ -1,0 +1,41 @@
+{
+  "name": "gramsathi-server",
+  "version": "1.0.0",
+  "description": "GramSathi AI — Backend REST API, Scheme Data Pipeline & Eligibility Engine",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "pipeline:dry-run": "tsx src/pipeline/importPipeline.ts --dry-run",
+    "pipeline:run": "tsx src/pipeline/importPipeline.ts",
+    "test:engine": "tsx src/engine/eligibilityEngine.test.ts",
+    "test:dedup": "tsx src/pipeline/deduplicator.test.ts",
+    "test:api": "tsx src/test_endpoints.ts",
+    "seed": "tsx src/scripts/seedSchemes.ts",
+    "test": "tsx src/test_endpoints.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^3.6.0",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.9.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

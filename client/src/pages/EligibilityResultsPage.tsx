@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCitizenProfile } from '../context/CitizenProfileContext';
+import { useJourneyTracker } from '../context/JourneyTrackerContext';
+import { useLanguage } from '../context/LanguageContext';
+import { TopBar } from '../components/TopBar';
+import { Navbar } from '../components/Navbar';
 
 export function EligibilityResultsPage() {
   const navigate = useNavigate();
+  const { profile } = useCitizenProfile();
+  const { downloadDossier, hasUploaded8A } = useJourneyTracker();
+  const { t, language } = useLanguage();
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   const handleAudioReadout = () => {
@@ -36,98 +44,24 @@ export function EligibilityResultsPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col">
       {/* ── 1. Top Civic Government Ribbon ── */}
-      <div className="bg-slate-100 border-b border-slate-200 text-slate-600 text-[11px] py-1.5 px-4 sm:px-6 lg:px-8 print:hidden">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="w-3.5 h-2.5 rounded-xs bg-linear-to-b from-orange-500 via-white to-green-600 border border-slate-300 inline-block shrink-0" />
-            <span className="font-semibold text-slate-800">महाराष्ट्र शासन</span>
-            <span className="text-slate-400">|</span>
-            <span className="font-medium text-slate-700 truncate">Government of Maharashtra</span>
-          </div>
-          <div className="flex items-center space-x-3 shrink-0">
-            <div className="hidden sm:flex items-center space-x-1 text-slate-500">
-              <button className="px-1 hover:text-slate-900 font-semibold">A-</button>
-              <button className="px-1 hover:text-slate-900 font-bold">A</button>
-              <button className="px-1 hover:text-slate-900 font-extrabold">A+</button>
-            </div>
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <span className="hidden sm:inline hover:underline cursor-pointer">Screen Reader</span>
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <div className="flex items-center space-x-1.5 font-semibold">
-              <span className="bg-blue-700 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">मराठी</span>
-              <span className="text-slate-600 hover:text-blue-700 cursor-pointer text-xs">हिंदी</span>
-              <span className="text-slate-400">/</span>
-              <span className="text-slate-600 hover:text-blue-700 cursor-pointer text-xs">English</span>
-            </div>
-          </div>
-        </div>
+      <div className="print:hidden">
+        <TopBar />
       </div>
 
       {/* ── 2. Civic Navbar ── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#0f3675] to-[#1850b5] flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-blue-900/10">
-                GS
-              </div>
-              <div>
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-2xl font-bold tracking-tight text-[#0f3675]">GramSathi</span>
-                  <span className="text-2xl font-extrabold text-[#1850b5]">.AI</span>
-                </div>
-                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
-                  सरकारी AI नागरिक मदतनीस
-                </div>
-              </div>
-            </div>
-
-            {/* Nav Menu */}
-            <nav className="hidden lg:flex items-center space-x-1 font-medium text-sm text-slate-700">
-              <button onClick={() => navigate('/')} className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Home
-              </button>
-              <button onClick={() => navigate('/schemes')} className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Explore Schemes
-              </button>
-              <button onClick={() => navigate('/')} className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                AI Citizen Assistant
-              </button>
-              <button onClick={() => navigate('/eligibility')} className="px-3.5 py-2 text-[#1850b5] font-semibold bg-blue-50/90 rounded-lg">
-                Eligibility Tool
-              </button>
-              <button onClick={() => navigate('/')} className="px-3.5 py-2 hover:text-[#1850b5] hover:bg-slate-50 rounded-lg transition-colors">
-                Grievance / Helpdesk
-              </button>
-            </nav>
-
-            {/* Helpline & Login */}
-            <div className="flex items-center space-x-4">
-              <div className="hidden xl:flex items-center space-x-2 text-xs font-semibold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                <span>📞</span>
-                <span>1800-120-GRAM</span>
-              </div>
-              <button
-                onClick={() => navigate('/signin')}
-                className="flex items-center space-x-2 bg-[#1850b5] hover:bg-[#0f3675] text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-xs transition-all active:scale-[0.98]"
-              >
-                <span>👤 Citizen Login</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <div className="print:hidden">
+        <Navbar />
+      </div>
 
       {/* ── 3. Page Header & Actions ── */}
       <section className="bg-white border-b border-slate-200 py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Eligibility Evaluation Results <span className="text-[#1850b5]">(योजना पात्रता निकाल)</span>
+              {t('Eligibility Results')} <span className="text-[#1850b5]">({language === 'mr' ? 'योजना पात्रता निकाल' : language === 'hi' ? 'योजना पात्रता परिणाम' : 'Eligibility Evaluation Results'})</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-1.5 max-w-3xl leading-relaxed font-medium">
-              Based on your self-declared landholding, caste category, and water source profile, review your tailored subsidy matches, validation safeguards, and next statutory steps.
+              {t('Based on your self-declared landholding, caste category, and water source profile, review your tailored subsidy matches, validation safeguards, and next statutory steps.')}
             </p>
           </div>
 
@@ -182,7 +116,7 @@ export function EligibilityResultsPage() {
             <div>
               <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">CITIZEN PROFILE ASSESSED</div>
               <h2 className="text-xl font-black text-slate-900 mt-0.5">
-                Ramesh Dattatray Gaikwad <span className="text-sm font-medium text-slate-500">(रमेश दत्तात्रय गायकवाड)</span>
+                {profile?.name || 'Ramesh Dattatray Gaikwad'} <span className="text-sm font-medium text-slate-500">({profile?.nameMr || 'रमेश दत्तात्रय गायकवाड'})</span>
               </h2>
             </div>
 
@@ -190,25 +124,25 @@ export function EligibilityResultsPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Landholding</div>
-                <div className="text-xs font-extrabold text-slate-900 mt-0.5">2.50 Acres</div>
-                <div className="text-[10px] text-slate-500 font-medium">(Small Farmer)</div>
+                <div className="text-xs font-extrabold text-slate-900 mt-0.5">{profile?.landholdingAcres || '2.50'} Acres</div>
+                <div className="text-[10px] text-slate-500 font-medium">({profile?.landholding || 'Small Farmer'})</div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Location / Village</div>
-                <div className="text-xs font-extrabold text-slate-900 mt-0.5">Baramati, Pune</div>
-                <div className="text-[10px] text-slate-500 font-medium">(413102)</div>
+                <div className="text-xs font-extrabold text-slate-900 mt-0.5">{profile?.taluka || 'Baramati'}, {profile?.district || 'Pune'}</div>
+                <div className="text-[10px] text-slate-500 font-medium">({profile?.pincode || '413102'})</div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Social Category</div>
-                <div className="text-xs font-extrabold text-slate-900 mt-0.5">OBC</div>
+                <div className="text-xs font-extrabold text-slate-900 mt-0.5">{profile?.socialCategory || 'OBC'}</div>
                 <div className="text-[10px] text-slate-500 font-medium">(Non-Creamy Layer)</div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Water Infrastructure</div>
-                <div className="text-xs font-extrabold text-slate-900 mt-0.5">Perennial Dug Well</div>
+                <div className="text-xs font-extrabold text-slate-900 mt-0.5">{profile?.waterSource || 'Perennial Dug Well'}</div>
                 <div className="text-[10px] text-slate-500 font-medium">(7/12 Verified)</div>
               </div>
             </div>
@@ -217,9 +151,9 @@ export function EligibilityResultsPage() {
             <div className="flex items-center gap-4 text-[11px] text-slate-500 font-medium pt-1">
               <span>🕒 Assessed: Today, 11:28 AM IST</span>
               <span>•</span>
-              <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                <span>✓</span>
-                <span>Validated with MahaDBT & Mahavitaran Registry 2024-25</span>
+              <span className="text-slate-600 font-semibold flex items-center gap-1">
+                <span>📋</span>
+                <span>Simulated Assessment • Cross-referenced with MahaDBT & Mahavitaran 2024-25 Benchmarks (Demo)</span>
               </span>
             </div>
           </div>
@@ -240,23 +174,23 @@ export function EligibilityResultsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-slate-600 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span>High Likelihood</span>
+                  <span>Eligible (TRUE)</span>
                 </span>
-                <span className="text-slate-900 font-bold">1 Scheme</span>
+                <span className="text-emerald-700 font-bold">1 Flagship Scheme</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-600 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  <span>Category Restricted</span>
+                  <span>Pending Info (UNKNOWN)</span>
                 </span>
-                <span className="text-slate-900 font-bold">1 Scheme</span>
+                <span className="text-amber-700 font-bold">1 Scheme (Ambedkar Yoj)</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-600 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  <span>Document Upgrades</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <span>Ineligible (FALSE)</span>
                 </span>
-                <span className="text-slate-900 font-bold">1 Item (8-A)</span>
+                <span className="text-slate-500 font-bold">Filtered Out (Gender/Land)</span>
               </div>
             </div>
           </div>
@@ -297,10 +231,13 @@ export function EligibilityResultsPage() {
                 (मुख्यमंत्री सौर कृषी वाहिनी योजना २.० - सौर कृषी पंप)
               </p>
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-3.5 py-1.5 rounded-full text-xs font-bold">
                 <span>✓</span>
-                <span>Potentially Eligible (मिळण्याची पूर्णता)</span>
+                <span>Deterministic Result: TRUE (Potentially Eligible)</span>
+              </span>
+              <span className="bg-white/10 text-blue-100 text-[10px] font-bold px-2.5 py-1 rounded-md border border-white/20">
+                Statutory Rule-Based
               </span>
             </div>
           </div>
@@ -437,7 +374,7 @@ export function EligibilityResultsPage() {
                   <span>Document Readiness</span>
                 </div>
                 <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  5 of 6 Ready
+                  {hasUploaded8A ? '6 of 6 Ready' : '5 of 6 Ready'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 mb-4 leading-relaxed font-medium">
@@ -452,7 +389,7 @@ export function EligibilityResultsPage() {
                   { title: 'OBC Caste Certificate', status: 'Ready', sub: 'NCL Valid up to 2026' },
                   { title: 'Bank Passbook / Cheque', status: 'Ready', sub: 'Bank of Maharashtra' },
                   { title: 'Farmland Self-Declaration', status: 'Ready', sub: 'Auto-Generated via AI' },
-                  { title: '8-A Extract (८-अ नोंद)', status: 'Pending', sub: 'Needs 2024-25 QR Copy' },
+                  { title: '8-A Extract (८-अ नोंद)', status: hasUploaded8A ? 'Ready' : 'Pending', sub: hasUploaded8A ? 'Verified QR Copy Attached' : 'Needs 2024-25 QR Copy' },
                 ].map((doc, idx) => (
                   <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200 text-xs">
                     <div className="flex items-center gap-2.5">
@@ -490,17 +427,17 @@ export function EligibilityResultsPage() {
 
             <div className="flex items-center gap-3 flex-wrap">
               <button
-                onClick={() => alert('Dossier PDF containing all verified documents is being generated for download.')}
+                onClick={downloadDossier}
                 className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-colors shadow-2xs"
               >
                 Download Dossier PDF
               </button>
 
               <button
-                onClick={() => window.open('https://www.mahaurja.com', '_blank')}
+                onClick={() => navigate('/tracker')}
                 className="px-6 py-2.5 bg-[#1850b5] hover:bg-[#0f3675] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 active:scale-[0.98]"
               >
-                <span>Proceed to Official Application (MahaDBT)</span>
+                <span>Proceed to Dossier & Application Tracker</span>
                 <span>→</span>
               </button>
             </div>
